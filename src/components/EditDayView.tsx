@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { useRoutines } from "../hooks/useRoutines";
-import { type WorkoutDay, type Exercise } from "../types";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Trash2, Plus } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useRoutines } from '../hooks/useRoutines';
+import { type WorkoutDay, type Exercise } from '../types';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Trash2, Plus } from 'lucide-react';
 
 interface EditDayViewProps {
   routineName: string;
@@ -18,8 +18,8 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
   const [editedDay, setEditedDay] = useState<WorkoutDay | null>(null);
 
   useEffect(() => {
-    const routine = routines.find((r) => r.name === routineName);
-    const dayData = routine?.days.find((d) => d.day === day);
+    const routine = routines.find(r => r.name === routineName);
+    const dayData = routine?.days.find(d => d.day === day);
     if (dayData) {
       setEditedDay(JSON.parse(JSON.stringify(dayData)));
     }
@@ -33,9 +33,9 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
   ) => {
     if (!editedDay) return;
     const newDay = { ...editedDay };
-    const superset = newDay.supersets.find((s) => s.id === supersetId);
+    const superset = newDay.supersets.find(s => s.id === supersetId);
     if (!superset) return;
-    const exercise = superset.exercises.find((e) => e.id === exerciseId);
+    const exercise = superset.exercises.find(e => e.id === exerciseId);
     if (!exercise) return;
     (exercise as unknown as Record<string, unknown>)[field] = value;
     setEditedDay(newDay);
@@ -44,17 +44,17 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
   const handleAddExercise = (supersetId: string) => {
     if (!editedDay) return;
     const newDay = { ...editedDay };
-    const superset = newDay.supersets.find((s) => s.id === supersetId);
+    const superset = newDay.supersets.find(s => s.id === supersetId);
     if (!superset) return;
 
     const newExercise: Exercise = {
       id: crypto.randomUUID(),
-      name: "Nuevo Ejercicio",
-      series: "3",
-      reps: "10",
-      tempo: "2010",
+      name: 'Nuevo Ejercicio',
+      series: '3',
+      reps: '10',
+      tempo: '2010',
       supersetCode: `${superset.id}${superset.exercises.length + 1}`,
-      notes: "",
+      notes: '',
     };
     superset.exercises.push(newExercise);
     setEditedDay(newDay);
@@ -63,9 +63,9 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
   const handleRemoveExercise = (supersetId: string, exerciseId: string) => {
     if (!editedDay) return;
     const newDay = { ...editedDay };
-    const superset = newDay.supersets.find((s) => s.id === supersetId);
+    const superset = newDay.supersets.find(s => s.id === supersetId);
     if (!superset) return;
-    superset.exercises = superset.exercises.filter((e) => e.id !== exerciseId);
+    superset.exercises = superset.exercises.filter(e => e.id !== exerciseId);
     setEditedDay(newDay);
   };
 
@@ -95,13 +95,13 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
         </Button>
       </div>
 
-      {editedDay.supersets.map((superset) => (
+      {editedDay.supersets.map(superset => (
         <Card key={superset.id}>
           <CardHeader>
             <CardTitle>Superserie {superset.id}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {superset.exercises.map((exercise) => (
+            {superset.exercises.map(exercise => (
               <div
                 key={exercise.id}
                 className="p-4 border rounded-lg bg-muted/20 space-y-3"
@@ -124,11 +124,11 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                     <Input
                       id={`ex-name-${exercise.id}`}
                       value={exercise.name}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           superset.id,
                           exercise.id,
-                          "name",
+                          'name',
                           e.target.value
                         )
                       }
@@ -141,11 +141,11 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                     <Input
                       id={`ex-superset-${exercise.id}`}
                       value={exercise.supersetCode}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           superset.id,
                           exercise.id,
-                          "supersetCode",
+                          'supersetCode',
                           e.target.value
                         )
                       }
@@ -156,11 +156,11 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                     <Input
                       id={`ex-series-${exercise.id}`}
                       value={exercise.series}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           superset.id,
                           exercise.id,
-                          "series",
+                          'series',
                           e.target.value
                         )
                       }
@@ -171,11 +171,11 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                     <Input
                       id={`ex-reps-${exercise.id}`}
                       value={exercise.reps}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           superset.id,
                           exercise.id,
-                          "reps",
+                          'reps',
                           e.target.value
                         )
                       }
@@ -186,11 +186,11 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                     <Input
                       id={`ex-tempo-${exercise.id}`}
                       value={exercise.tempo}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           superset.id,
                           exercise.id,
-                          "tempo",
+                          'tempo',
                           e.target.value
                         )
                       }
@@ -201,12 +201,12 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                   <Label htmlFor={`ex-notes-${exercise.id}`}>Notas</Label>
                   <Input
                     id={`ex-notes-${exercise.id}`}
-                    value={exercise.notes || ""}
-                    onChange={(e) =>
+                    value={exercise.notes || ''}
+                    onChange={e =>
                       handleExerciseChange(
                         superset.id,
                         exercise.id,
-                        "notes",
+                        'notes',
                         e.target.value
                       )
                     }
@@ -219,7 +219,7 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
               className="w-full border-dashed"
               onClick={() => handleAddExercise(superset.id)}
             >
-              <Plus className="mr-2 h-4 w-4" /> Añadir Ejercicio a Superserie{" "}
+              <Plus className="mr-2 h-4 w-4" /> Añadir Ejercicio a Superserie{' '}
               {superset.id}
             </Button>
           </CardContent>

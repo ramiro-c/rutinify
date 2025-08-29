@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useRoutines } from "../hooks/useRoutines";
-import { useWorkoutHistory } from "../hooks/useWorkoutHistory";
-import { type Exercise } from "../types";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
+import { useState } from 'react';
+import { useRoutines } from '../hooks/useRoutines';
+import { useWorkoutHistory } from '../hooks/useWorkoutHistory';
+import { type Exercise } from '../types';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 interface WorkoutViewProps {
   routineName: string;
@@ -28,10 +28,10 @@ const ExerciseLogger = ({
   const previousData = getLatestExerciseData(exercise.id);
   const previousSet = previousData?.sets[setIndex];
 
-  let previousSetDisplay = "-- kg x -- reps";
+  let previousSetDisplay = '-- kg x -- reps';
   if (previousSet && (previousSet.weight || previousSet.reps)) {
-    previousSetDisplay = `${previousSet.weight || "PC"} kg x ${
-      previousSet.reps || "-"
+    previousSetDisplay = `${previousSet.weight || 'PC'} kg x ${
+      previousSet.reps || '-'
     } reps`;
   }
 
@@ -48,16 +48,16 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
   const { addWorkoutSession } = useWorkoutHistory();
   const [sessionData, setSessionData] = useState<SessionData>({});
 
-  const routine = routines.find((r) => r.name === routineName);
-  const workoutDay = routine?.days.find((d) => d.day === day);
+  const routine = routines.find(r => r.name === routineName);
+  const workoutDay = routine?.days.find(d => d.day === day);
 
   const handleInputChange = (
     exerciseId: string,
     setIndex: number,
-    field: "weight" | "reps",
+    field: 'weight' | 'reps',
     value: string
   ) => {
-    setSessionData((prev) => ({
+    setSessionData(prev => ({
       ...prev,
       [exerciseId]: {
         ...prev[exerciseId],
@@ -73,7 +73,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
   };
 
   const handleNotesChange = (exerciseId: string, value: string) => {
-    setSessionData((prev) => ({
+    setSessionData(prev => ({
       ...prev,
       [exerciseId]: {
         ...prev[exerciseId],
@@ -92,7 +92,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
             weight: parseFloat(set.weight) || null,
             reps: parseInt(set.reps, 10) || null,
           }))
-          .filter((s) => s.weight !== null || s.reps !== null), // Only save sets with some data
+          .filter(s => s.weight !== null || s.reps !== null), // Only save sets with some data
         notes: data.notes,
       })
     );
@@ -125,13 +125,13 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
         </Button>
       </div>
 
-      {workoutDay.supersets.map((superset) => (
+      {workoutDay.supersets.map(superset => (
         <Card key={superset.id}>
           <CardHeader>
             <CardTitle>Superserie {superset.id}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {superset.exercises.map((exercise) => (
+            {superset.exercises.map(exercise => (
               <div key={exercise.id} className="border-t pt-4">
                 <div className="mb-3">
                   <h4 className="font-semibold text-lg tracking-tight">
@@ -140,8 +140,8 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                   <p className="text-sm text-muted-foreground">
                     <span className="font-medium">
                       {exercise.series}x{exercise.reps}
-                    </span>{" "}
-                    | Tempo: {exercise.tempo} |{" "}
+                    </span>{' '}
+                    | Tempo: {exercise.tempo} |{' '}
                     <span className="font-mono bg-muted rounded px-1.5 py-0.5 text-xs">
                       {exercise.supersetCode}
                     </span>
@@ -168,11 +168,11 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                         <Input
                           type="number"
                           placeholder="Peso (kg)"
-                          onChange={(e) =>
+                          onChange={e =>
                             handleInputChange(
                               exercise.id,
                               setIndex,
-                              "weight",
+                              'weight',
                               e.target.value
                             )
                           }
@@ -180,11 +180,11 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                         <Input
                           type="number"
                           placeholder="Reps"
-                          onChange={(e) =>
+                          onChange={e =>
                             handleInputChange(
                               exercise.id,
                               setIndex,
-                              "reps",
+                              'reps',
                               e.target.value
                             )
                           }
@@ -197,7 +197,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                 <div className="mt-3">
                   <Input
                     placeholder="Notas de la sesión para este ejercicio..."
-                    onChange={(e) =>
+                    onChange={e =>
                       handleNotesChange(exercise.id, e.target.value)
                     }
                     className="text-sm"

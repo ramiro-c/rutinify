@@ -8,8 +8,14 @@ type View = 'list' | 'workout' | 'edit_day';
 
 function App() {
   const [view, setView] = useState<View>('list');
-  const [activeWorkout, setActiveWorkout] = useState<{ routineName: string; day: number } | null>(null);
-  const [editingDay, setEditingDay] = useState<{ routineName: string; day: number } | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<{
+    routineName: string;
+    day: number;
+  } | null>(null);
+  const [editingDay, setEditingDay] = useState<{
+    routineName: string;
+    day: number;
+  } | null>(null);
 
   const handleStartWorkout = (routineName: string, day: number) => {
     setActiveWorkout({ routineName, day });
@@ -29,24 +35,28 @@ function App() {
 
   return (
     <Layout onGoHome={handleBackToList}>
-      {view === 'list' && <RoutineList onStartWorkout={handleStartWorkout} onEditDay={handleEditDay} />}
-      
+      {view === 'list' && (
+        <RoutineList
+          onStartWorkout={handleStartWorkout}
+          onEditDay={handleEditDay}
+        />
+      )}
+
       {view === 'workout' && activeWorkout && (
-        <WorkoutView 
-          routineName={activeWorkout.routineName} 
+        <WorkoutView
+          routineName={activeWorkout.routineName}
           day={activeWorkout.day}
-          onBack={handleBackToList} 
+          onBack={handleBackToList}
         />
       )}
 
       {view === 'edit_day' && editingDay && (
-        <EditDayView 
-          routineName={editingDay.routineName} 
+        <EditDayView
+          routineName={editingDay.routineName}
           day={editingDay.day}
-          onBack={handleBackToList} 
+          onBack={handleBackToList}
         />
       )}
-
     </Layout>
   );
 }

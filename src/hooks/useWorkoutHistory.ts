@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { type WorkoutSession } from "../types";
+import { useState, useEffect, useCallback } from 'react';
+import { type WorkoutSession } from '../types';
 
-const HISTORY_STORAGE_KEY = "rutinify-history";
+const HISTORY_STORAGE_KEY = 'rutinify-history';
 
 export const useWorkoutHistory = () => {
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -13,7 +13,7 @@ export const useWorkoutHistory = () => {
         setHistory(JSON.parse(storedHistory));
       }
     } catch (error) {
-      console.error("Failed to parse workout history from localStorage", error);
+      console.error('Failed to parse workout history from localStorage', error);
       setHistory([]);
     }
   }, []);
@@ -23,11 +23,11 @@ export const useWorkoutHistory = () => {
       localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(newHistory));
       setHistory(newHistory);
     } catch (error) {
-      console.error("Failed to save workout history to localStorage", error);
+      console.error('Failed to save workout history to localStorage', error);
     }
   };
 
-  const addWorkoutSession = (session: Omit<WorkoutSession, "date">) => {
+  const addWorkoutSession = (session: Omit<WorkoutSession, 'date'>) => {
     const newSession = {
       ...session,
       date: new Date().toISOString(),
@@ -41,7 +41,7 @@ export const useWorkoutHistory = () => {
       for (let i = history.length - 1; i >= 0; i--) {
         const session = history[i];
         const exerciseData = session.completedExercises.find(
-          (e) => e.exerciseId === exerciseId
+          e => e.exerciseId === exerciseId
         );
         if (exerciseData) {
           return exerciseData;

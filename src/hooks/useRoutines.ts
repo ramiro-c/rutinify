@@ -1,60 +1,69 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   type Routine,
   type WorkoutDay,
   type Superset,
   type Exercise,
-} from "../types";
-import rawRoutineCsv from "../../data/rutina-ejemplo.csv?raw";
+} from '../types';
+import rawRoutineCsv from '../../data/rutina-ejemplo.csv?raw';
 
-const ROUTINES_STORAGE_KEY = "rutinify-routines";
+const ROUTINES_STORAGE_KEY = 'rutinify-routines';
 
 // Helper function to parse the raw CSV data
 const parseRoutineCsv = (csv: string): Routine[] => {
-  const lines = csv.split("\r\n").filter((line) => line.trim() !== "");
-  const headers = lines[0].split(",");
+  const lines = csv.split('\r\n').filter(line => line.trim() !== '');
+  const headers = lines[0].split(',');
 
-  const routineData = lines.slice(1).reduce((acc, line) => {
-    const values = line.split(",");
-    const entry = headers.reduce((obj, header, index) => {
-      obj[header.trim()] = values[index] ? values[index].trim() : "";
-      return obj;
-    }, {} as Record<string, string>);
+  const routineData = lines.slice(1).reduce(
+    (acc, line) => {
+      const values = line.split(',');
+      const entry = headers.reduce(
+        (obj, header, index) => {
+          obj[header.trim()] = values[index] ? values[index].trim() : '';
+          return obj;
+        },
+        {} as Record<string, string>
+      );
 
-    const day = parseInt(entry["Día"], 10);
-    if (!isNaN(day)) {
-      if (!acc[day]) {
-        acc[day] = [];
+      const day = parseInt(entry['Día'], 10);
+      if (!isNaN(day)) {
+        if (!acc[day]) {
+          acc[day] = [];
+        }
+        acc[day].push(entry);
       }
-      acc[day].push(entry);
-    }
-    return acc;
-  }, {} as Record<number, Record<string, string>[]>);
+      return acc;
+    },
+    {} as Record<number, Record<string, string>[]>
+  );
 
-  const days: WorkoutDay[] = Object.keys(routineData).map((dayNumberStr) => {
+  const days: WorkoutDay[] = Object.keys(routineData).map(dayNumberStr => {
     const day = parseInt(dayNumberStr, 10);
     const exercisesForDay = routineData[day];
 
-    const supersetData = exercisesForDay.reduce((acc, ex) => {
-      const supersetGroup = ex["Superserie"].replace(/\d/g, ""); // A1 -> A
-      if (!acc[supersetGroup]) {
-        acc[supersetGroup] = [];
-      }
-      acc[supersetGroup].push(ex);
-      return acc;
-    }, {} as Record<string, Record<string, string>[]>);
+    const supersetData = exercisesForDay.reduce(
+      (acc, ex) => {
+        const supersetGroup = ex['Superserie'].replace(/\d/g, ''); // A1 -> A
+        if (!acc[supersetGroup]) {
+          acc[supersetGroup] = [];
+        }
+        acc[supersetGroup].push(ex);
+        return acc;
+      },
+      {} as Record<string, Record<string, string>[]>
+    );
 
     const supersets: Superset[] = Object.keys(supersetData).map(
-      (supersetGroup) => {
+      supersetGroup => {
         const exercises: Exercise[] = supersetData[supersetGroup].map(
           (ex: Record<string, string>) => ({
             id: crypto.randomUUID(),
-            name: ex["Ejercicio"],
-            series: ex["Series"],
-            reps: ex["Reps"],
-            tempo: ex["Tempo"],
-            supersetCode: ex["Superserie"],
-            notes: ex["Notas"],
+            name: ex['Ejercicio'],
+            series: ex['Series'],
+            reps: ex['Reps'],
+            tempo: ex['Tempo'],
+            supersetCode: ex['Superserie'],
+            notes: ex['Notas'],
           })
         );
         return {
@@ -71,7 +80,7 @@ const parseRoutineCsv = (csv: string): Routine[] => {
   });
 
   const initialRoutine: Routine = {
-    name: "Mi Rutina Actual",
+    name: 'Mi Rutina Actual',
     days: days.sort((a, b) => a.day - b.day),
   };
 
@@ -84,7 +93,7 @@ export const useRoutines = () => {
   useEffect(() => {
     try {
       const storedRoutines = localStorage.getItem(ROUTINES_STORAGE_KEY);
-      if (storedRoutines && storedRoutines !== "[]") {
+      if (storedRoutines && storedRoutines !== '[]') {
         setRoutines(JSON.parse(storedRoutines));
       } else {
         // If localStorage is empty, parse the CSV and set it as the initial state
@@ -92,13 +101,13 @@ export const useRoutines = () => {
         saveRoutines(initialRoutines);
       }
     } catch (error) {
-      console.error("Failed to load or parse routines", error);
+      console.error('Failed to load or parse routines', error);
       // Fallback to CSV if parsing fails
       try {
         const initialRoutines = parseRoutineCsv(rawRoutineCsv);
         saveRoutines(initialRoutines);
       } catch (csvError) {
-        console.error("Failed to parse fallback CSV", csvError);
+        console.error('Failed to parse fallback CSV', csvError);
         setRoutines([]);
       }
     }
@@ -109,7 +118,7 @@ export const useRoutines = () => {
       localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(newRoutines));
       setRoutines(newRoutines);
     } catch (error) {
-      console.error("Failed to save routines to localStorage", error);
+      console.error('Failed to save routines to localStorage', error);
     }
   };
 
@@ -119,7 +128,7 @@ export const useRoutines = () => {
   };
 
   const updateRoutine = (updatedRoutine: Routine) => {
-    const newRoutines = routines.map((routine) =>
+    const newRoutines = routines.map(routine =>
       routine.name === updatedRoutine.name ? updatedRoutine : routine
     );
     saveRoutines(newRoutines);
@@ -127,10 +136,10 @@ export const useRoutines = () => {
 
   const deleteWorkoutDay = (routineName: string, dayToDelete: number) => {
     const newRoutines = routines
-      .map((routine) => {
+      .map(routine => {
         if (routine.name === routineName) {
           const updatedDays = routine.days.filter(
-            (day) => day.day !== dayToDelete
+            day => day.day !== dayToDelete
           );
           // If this was the last day, remove the routine entirely
           if (updatedDays.length === 0) {
@@ -152,9 +161,9 @@ export const useRoutines = () => {
     dayNumber: number,
     updatedDay: WorkoutDay
   ) => {
-    const newRoutines = routines.map((routine) => {
+    const newRoutines = routines.map(routine => {
       if (routine.name === routineName) {
-        const dayIndex = routine.days.findIndex((d) => d.day === dayNumber);
+        const dayIndex = routine.days.findIndex(d => d.day === dayNumber);
         if (dayIndex === -1) return routine; // Day not found, return original routine
 
         const newDays = [...routine.days];

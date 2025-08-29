@@ -1,4 +1,3 @@
-
 # Rutinify
 
 Rutinify es una aplicación web diseñada para simplificar la creación, gestión y seguimiento de rutinas de entrenamiento. La motivación principal es ofrecer una herramienta flexible y fácil de usar para que los entusiastas del fitness puedan planificar sus entrenamientos de manera detallada y seguir su progreso a lo largo del tiempo.
