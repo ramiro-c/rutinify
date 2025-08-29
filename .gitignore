@@ -17,6 +17,10 @@ bun.lockb
 yarn.lock
 package-lock.json
 
+# Development and documentation files
+GEMINI.md
+data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
