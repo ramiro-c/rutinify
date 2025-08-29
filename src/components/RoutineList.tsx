@@ -86,9 +86,14 @@ export const RoutineList = ({
             {routine.name}
           </h2>
           {routine.days.length === 0 ? (
-            <p className="text-muted-foreground italic">
-              Esta rutina no tiene días. ¡Añade uno editándola!
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <Card className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground">
+                <p className="text-lg font-semibold mb-4">Esta rutina no tiene días aún.</p>
+                <Button onClick={() => onEditDay(routine.name, 1)}>
+                  <Plus className="mr-2 h-4 w-4" /> Añadir Día 1
+                </Button>
+              </Card>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {routine.days.map(day => {

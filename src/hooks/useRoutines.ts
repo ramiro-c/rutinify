@@ -164,10 +164,15 @@ export const useRoutines = () => {
     const newRoutines = routines.map(routine => {
       if (routine.name === routineName) {
         const dayIndex = routine.days.findIndex(d => d.day === dayNumber);
-        if (dayIndex === -1) return routine; // Day not found, return original routine
-
         const newDays = [...routine.days];
-        newDays[dayIndex] = updatedDay;
+
+        if (dayIndex === -1) {
+          // Day not found, add it
+          newDays.push(updatedDay);
+        } else {
+          // Day found, update it
+          newDays[dayIndex] = updatedDay;
+        }
 
         return {
           ...routine,
