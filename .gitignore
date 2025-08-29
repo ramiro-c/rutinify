@@ -18,6 +18,7 @@ yarn.lock
 package-lock.json
 
 # Development and documentation files
+ideas.txt
 GEMINI.md
 data/
 
