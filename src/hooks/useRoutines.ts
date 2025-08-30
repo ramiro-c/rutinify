@@ -136,7 +136,9 @@ export const useRoutines = () => {
   };
 
   const deleteRoutine = (routineName: string) => {
-    const newRoutines = routines.filter(routine => routine.name !== routineName);
+    const newRoutines = routines.filter(
+      routine => routine.name !== routineName
+    );
     saveRoutines(newRoutines);
   };
 
@@ -190,6 +192,33 @@ export const useRoutines = () => {
     saveRoutines(newRoutines);
   };
 
+  const updateDayName = (
+    routineName: string,
+    dayNumber: number,
+    newDayName: string
+  ) => {
+    const newRoutines = routines.map(routine => {
+      if (routine.name === routineName) {
+        const newDays = routine.days.map(day => {
+          if (day.day === dayNumber) {
+            return {
+              ...day,
+              dayName: newDayName.trim() || undefined,
+            };
+          }
+          return day;
+        });
+
+        return {
+          ...routine,
+          days: newDays,
+        };
+      }
+      return routine;
+    });
+    saveRoutines(newRoutines);
+  };
+
   return {
     routines,
     setRoutines: saveRoutines,
@@ -198,5 +227,6 @@ export const useRoutines = () => {
     deleteRoutine,
     deleteWorkoutDay,
     updateWorkoutDay,
+    updateDayName,
   };
 };

@@ -63,10 +63,11 @@ const AddDayForm = ({
   onAddDay,
 }: {
   routineName: string;
-  onAddDay: (dayNumber: number) => void;
+  onAddDay: (dayNumber: number, dayName?: string) => void;
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [dayNumber, setDayNumber] = useState('');
+  const [dayName, setDayName] = useState('');
   const { routines } = useRoutines();
 
   const handleSave = () => {
@@ -82,8 +83,9 @@ const AddDayForm = ({
       return;
     }
 
-    onAddDay(num);
+    onAddDay(num, dayName.trim() || undefined);
     setDayNumber('');
+    setDayName('');
     setIsAdding(false);
   };
 
@@ -96,14 +98,22 @@ const AddDayForm = ({
   }
 
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2 items-center flex-wrap">
       <Input
         type="number"
-        placeholder="Número de día (ej. 2)"
+        placeholder="Número (ej. 2)"
         value={dayNumber}
         onChange={e => setDayNumber(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleSave()}
-        className="w-32"
+        className="w-24"
+      />
+      <Input
+        type="text"
+        placeholder="Nombre (opcional)"
+        value={dayName}
+        onChange={e => setDayName(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleSave()}
+        className="w-40"
       />
       <Button onClick={handleSave}>Guardar</Button>
       <Button variant="ghost" onClick={() => setIsAdding(false)}>
@@ -113,11 +123,81 @@ const AddDayForm = ({
   );
 };
 
+const EditableDayTitle = ({
+  routineName,
+  day,
+  dayName,
+  onUpdateDayName,
+}: {
+  routineName: string;
+  day: number;
+  dayName?: string;
+  onUpdateDayName: (routineName: string, dayNumber: number, newName: string) => void;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingName, setEditingName] = useState(dayName || '');
+
+  const handleSave = () => {
+    onUpdateDayName(routineName, day, editingName);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditingName(dayName || '');
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          value={editingName}
+          onChange={e => setEditingName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          autoFocus
+          placeholder={`Día ${day}`}
+          className="text-lg font-semibold"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <span
+      onClick={() => setIsEditing(true)}
+      className="cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+      title="Haz clic para editar el nombre"
+    >
+      {dayName || `Día ${day}`}
+      {dayName && (
+        <span className="text-sm font-normal text-muted-foreground ml-2">
+          (Día {day})
+        </span>
+      )}
+    </span>
+  );
+};
+
 export const RoutineList = ({
   onStartWorkout,
   onEditDay,
 }: RoutineListProps) => {
-  const { routines, deleteWorkoutDay, deleteRoutine } = useRoutines();
+  const {
+    routines,
+    deleteWorkoutDay,
+    deleteRoutine,
+    updateDayName,
+    updateWorkoutDay,
+  } = useRoutines();
 
   const handleDeleteRoutine = (routineName: string) => {
     if (
@@ -127,6 +207,22 @@ export const RoutineList = ({
     ) {
       deleteRoutine(routineName);
     }
+  };
+
+  const handleAddDay = (
+    routineName: string,
+    dayNumber: number,
+    dayName?: string
+  ) => {
+    // Create a new day with the specified name
+    const newDay = {
+      day: dayNumber,
+      dayName: dayName,
+      supersets: [],
+    };
+    updateWorkoutDay(routineName, dayNumber, newDay);
+    // Then redirect to edit it
+    onEditDay(routineName, dayNumber);
   };
 
   return (
@@ -154,7 +250,9 @@ export const RoutineList = ({
             <div className="flex items-center gap-2">
               <AddDayForm
                 routineName={routine.name}
-                onAddDay={dayNum => onEditDay(routine.name, dayNum)}
+                onAddDay={(dayNum, dayName) =>
+                  handleAddDay(routine.name, dayNum, dayName)
+                }
               />
               <Button
                 variant="ghost"
@@ -173,7 +271,7 @@ export const RoutineList = ({
                 <p className="text-lg font-semibold mb-4">
                   Esta rutina no tiene días aún.
                 </p>
-                <Button onClick={() => onEditDay(routine.name, 1)}>
+                <Button onClick={() => handleAddDay(routine.name, 1)}>
                   <Plus className="mr-2 h-4 w-4" /> Añadir Día 1
                 </Button>
               </Card>
@@ -192,7 +290,12 @@ export const RoutineList = ({
                   >
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span>Día {day.day}</span>
+                        <EditableDayTitle
+                          routineName={routine.name}
+                          day={day.day}
+                          dayName={day.dayName}
+                          onUpdateDayName={updateDayName}
+                        />
                         <span className="text-xs font-normal bg-muted text-muted-foreground rounded-full px-2 py-1">
                           {totalExercises}{' '}
                           {totalExercises === 1 ? 'ejercicio' : 'ejercicios'}

@@ -105,7 +105,12 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">
-          Editando Día {day}
+          Editando {editedDay.dayName || `Día ${day}`}
+          {editedDay.dayName && (
+            <span className="text-lg font-normal text-muted-foreground ml-2">
+              (Día {day})
+            </span>
+          )}
         </h2>
         <Button size="lg" onClick={handleSaveChanges}>
           Guardar Cambios
