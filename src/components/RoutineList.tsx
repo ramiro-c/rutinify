@@ -58,11 +58,76 @@ const AddRoutineForm = () => {
   );
 };
 
+const AddDayForm = ({
+  routineName,
+  onAddDay,
+}: {
+  routineName: string;
+  onAddDay: (dayNumber: number) => void;
+}) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [dayNumber, setDayNumber] = useState('');
+  const { routines } = useRoutines();
+
+  const handleSave = () => {
+    const num = parseInt(dayNumber, 10);
+    if (isNaN(num) || num <= 0) {
+      alert('Por favor, introduce un número de día válido (ej. 1, 2, 3).');
+      return;
+    }
+
+    const routine = routines.find(r => r.name === routineName);
+    if (routine && routine.days.some(d => d.day === num)) {
+      alert(`El Día ${num} ya existe en esta rutina.`);
+      return;
+    }
+
+    onAddDay(num);
+    setDayNumber('');
+    setIsAdding(false);
+  };
+
+  if (!isAdding) {
+    return (
+      <Button variant="outline" size="sm" onClick={() => setIsAdding(true)}>
+        <Plus className="mr-2 h-4 w-4" /> Añadir Día
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 items-center">
+      <Input
+        type="number"
+        placeholder="Número de día (ej. 2)"
+        value={dayNumber}
+        onChange={e => setDayNumber(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleSave()}
+        className="w-32"
+      />
+      <Button onClick={handleSave}>Guardar</Button>
+      <Button variant="ghost" onClick={() => setIsAdding(false)}>
+        Cancelar
+      </Button>
+    </div>
+  );
+};
+
 export const RoutineList = ({
   onStartWorkout,
   onEditDay,
 }: RoutineListProps) => {
-  const { routines, deleteWorkoutDay } = useRoutines();
+  const { routines, deleteWorkoutDay, deleteRoutine } = useRoutines();
+
+  const handleDeleteRoutine = (routineName: string) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que quieres eliminar la rutina "${routineName}"? Esta acción no se puede deshacer.`
+      )
+    ) {
+      deleteRoutine(routineName);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -82,13 +147,32 @@ export const RoutineList = ({
 
       {routines.map(routine => (
         <section key={routine.name}>
-          <h2 className="text-2xl font-semibold tracking-tight mb-4">
-            {routine.name}
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {routine.name}
+            </h2>
+            <div className="flex items-center gap-2">
+              <AddDayForm
+                routineName={routine.name}
+                onAddDay={dayNum => onEditDay(routine.name, dayNum)}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDeleteRoutine(routine.name)}
+                title={`Eliminar rutina ${routine.name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           {routine.days.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <Card className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground">
-                <p className="text-lg font-semibold mb-4">Esta rutina no tiene días aún.</p>
+                <p className="text-lg font-semibold mb-4">
+                  Esta rutina no tiene días aún.
+                </p>
                 <Button onClick={() => onEditDay(routine.name, 1)}>
                   <Plus className="mr-2 h-4 w-4" /> Añadir Día 1
                 </Button>

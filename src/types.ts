@@ -15,6 +15,7 @@ export interface Superset {
 
 export interface WorkoutDay {
   day: number;
+  dayName?: string; // Optional custom name for the day
   supersets: Superset[];
 }
 

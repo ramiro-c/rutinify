@@ -17,7 +17,7 @@ export const Layout = ({ children, onGoHome }: LayoutProps) => {
         <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
           <button
             onClick={onGoHome}
-            className="mr-4 flex items-center space-x-2 cursor-pointer"
+            className="ml-4 mr-4 flex items-center space-x-2 cursor-pointer"
           >
             <Dumbbell className="h-6 w-6" />
             <h1 className="text-2xl font-bold tracking-tight">Rutinify</h1>

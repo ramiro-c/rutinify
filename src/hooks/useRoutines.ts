@@ -75,6 +75,7 @@ const parseRoutineCsv = (csv: string): Routine[] => {
 
     return {
       day,
+      dayName: `Día ${day}`,
       supersets,
     };
   });
@@ -134,6 +135,11 @@ export const useRoutines = () => {
     saveRoutines(newRoutines);
   };
 
+  const deleteRoutine = (routineName: string) => {
+    const newRoutines = routines.filter(routine => routine.name !== routineName);
+    saveRoutines(newRoutines);
+  };
+
   const deleteWorkoutDay = (routineName: string, dayToDelete: number) => {
     const newRoutines = routines
       .map(routine => {
@@ -189,6 +195,7 @@ export const useRoutines = () => {
     setRoutines: saveRoutines,
     addRoutine,
     updateRoutine,
+    deleteRoutine,
     deleteWorkoutDay,
     updateWorkoutDay,
   };
