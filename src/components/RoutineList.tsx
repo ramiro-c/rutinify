@@ -315,7 +315,6 @@ export const RoutineList = ({
                     <CardFooter className="flex justify-between items-center">
                       <Button
                         size="sm"
-                        className="cursor-pointer"
                         onClick={() => onStartWorkout(routine.name, day.day)}
                       >
                         <Dumbbell className="mr-2 h-4 w-4" /> Iniciar
@@ -324,7 +323,6 @@ export const RoutineList = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="cursor-pointer"
                           onClick={() => onEditDay(routine.name, day.day)}
                         >
                           <Pencil className="h-5 w-5" />
@@ -332,7 +330,7 @@ export const RoutineList = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive cursor-pointer"
+                          className="text-destructive hover:text-destructive"
                           onClick={() =>
                             deleteWorkoutDay(routine.name, day.day)
                           }
