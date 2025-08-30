@@ -132,7 +132,11 @@ const EditableDayTitle = ({
   routineName: string;
   day: number;
   dayName?: string;
-  onUpdateDayName: (routineName: string, dayNumber: number, newName: string) => void;
+  onUpdateDayName: (
+    routineName: string,
+    dayNumber: number,
+    newName: string
+  ) => void;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingName, setEditingName] = useState(dayName || '');
