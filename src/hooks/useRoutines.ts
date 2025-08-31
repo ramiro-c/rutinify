@@ -56,15 +56,29 @@ const parseRoutineCsv = (csv: string): Routine[] => {
     const supersets: Superset[] = Object.keys(supersetData).map(
       supersetGroup => {
         const exercises: Exercise[] = supersetData[supersetGroup].map(
-          (ex: Record<string, string>) => ({
-            id: crypto.randomUUID(),
-            name: ex['Ejercicio'],
-            series: ex['Series'],
-            reps: ex['Reps'],
-            tempo: ex['Tempo'],
-            supersetCode: ex['Superserie'],
-            notes: ex['Notas'],
-          })
+          (ex: Record<string, string>) => {
+            const seriesCount = parseInt(ex['Series'], 10) || 3;
+            const repsCount = parseInt(ex['Reps'], 10) || 10;
+
+            // Crear sets basados en las series
+            const sets = Array.from({ length: seriesCount }, () => ({
+              id: crypto.randomUUID(),
+              type: 'reps' as const,
+              weight: 0,
+              reps: repsCount,
+              completed: false,
+            }));
+
+            return {
+              id: crypto.randomUUID(),
+              name: ex['Ejercicio'],
+              type: 'reps' as const,
+              sets,
+              tempo: ex['Tempo'],
+              supersetCode: ex['Superserie'],
+              notes: ex['Notas'],
+            };
+          }
         );
         return {
           id: supersetGroup,
