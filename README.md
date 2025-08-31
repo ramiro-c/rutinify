@@ -298,6 +298,21 @@ src/
 
 ## 📝 Historial de Versiones
 
+### **v1.4.2** _(31 de agosto de 2025)_
+
+- **🔧 Modernización de Iconos**: Reemplazo de iconos brand deprecados
+  - Eliminación de iconos `Github` y `Linkedin` deprecados de Lucide React
+  - Implementación de componentes SVG personalizados para GitHub y LinkedIn
+  - Compatibilidad futura garantizada con actualizaciones de Lucide React
+- **🎨 Mejoras de Footer**:
+  - Footer profesional con información del desarrollador
+  - Enlaces funcionales a GitHub y LinkedIn con hover effects
+  - Diseño responsive y compatible con temas claro/oscuro
+- **🛠️ Code Quality**:
+  - Eliminación de warnings de deprecación
+  - SVGs optimizados usando `currentColor` para mejor integración con temas
+  - Componentes más estables y mantenibles
+
 ### **v1.4.1** _(31 de agosto de 2025)_
 
 - **🚀 Deployment Ready**: Eliminación completa de dependencias a archivos locales

@@ -50,6 +50,11 @@ export interface Routine {
   days: WorkoutDay[];
 }
 
+// For current week tracking
+export interface WeekSettings {
+  currentWeek: number; // 1-4
+}
+
 // For workout history
 export interface CompletedSet {
   set: number;
@@ -67,5 +72,6 @@ export interface WorkoutSession {
   date: string; // ISO string
   routineName: string;
   dayCompleted: number;
+  week: number; // Week number (1-4)
   completedExercises: CompletedExercise[];
 }

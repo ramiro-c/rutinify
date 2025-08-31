@@ -1,11 +1,13 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { type Routine, type WorkoutDay } from '../types';
+import { type Routine, type WorkoutDay, type WeekSettings } from '../types';
 
 const ROUTINES_STORAGE_KEY = 'rutinify-routines';
+const WEEK_SETTINGS_STORAGE_KEY = 'rutinify-week-settings';
 
 interface RoutinesContextType {
   routines: Routine[];
+  weekSettings: WeekSettings;
   addRoutine: (routine: Routine) => void;
   updateRoutine: (updatedRoutine: Routine) => void;
   deleteRoutine: (routineName: string) => void;
@@ -20,6 +22,8 @@ interface RoutinesContextType {
     dayNumber: number,
     newDayName: string
   ) => void;
+  updateRoutineName: (oldName: string, newName: string) => void;
+  updateCurrentWeek: (week: number) => void;
 }
 
 const RoutinesContext = createContext<RoutinesContextType | undefined>(
@@ -32,6 +36,9 @@ let isGloballyInitialized = false;
 
 export const RoutinesProvider = ({ children }: { children: ReactNode }) => {
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [weekSettings, setWeekSettings] = useState<WeekSettings>({
+    currentWeek: 1,
+  });
 
   const saveRoutines = (newRoutines: Routine[]) => {
     try {
@@ -42,23 +49,45 @@ export const RoutinesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const saveWeekSettings = (newWeekSettings: WeekSettings) => {
+    try {
+      localStorage.setItem(
+        WEEK_SETTINGS_STORAGE_KEY,
+        JSON.stringify(newWeekSettings)
+      );
+      setWeekSettings(newWeekSettings);
+    } catch (error) {
+      console.error('Failed to save week settings to localStorage', error);
+    }
+  };
+
   useEffect(() => {
     if (isGloballyInitialized) return;
 
     try {
+      // Cargar rutinas
       const storedRoutines = localStorage.getItem(ROUTINES_STORAGE_KEY);
-
       if (storedRoutines) {
         setRoutines(JSON.parse(storedRoutines));
       } else {
-        // Comenzar con array vacío en la primera carga
         setRoutines([]);
+      }
+
+      // Cargar configuraciones de semana
+      const storedWeekSettings = localStorage.getItem(
+        WEEK_SETTINGS_STORAGE_KEY
+      );
+      if (storedWeekSettings) {
+        setWeekSettings(JSON.parse(storedWeekSettings));
+      } else {
+        setWeekSettings({ currentWeek: 1 });
       }
 
       isGloballyInitialized = true;
     } catch (error) {
-      console.error('Failed to load routines', error);
+      console.error('Failed to load data from localStorage', error);
       setRoutines([]);
+      setWeekSettings({ currentWeek: 1 });
       isGloballyInitialized = true;
     }
   }, []);
@@ -166,14 +195,37 @@ export const RoutinesProvider = ({ children }: { children: ReactNode }) => {
     saveRoutines(newRoutines);
   };
 
+  const updateCurrentWeek = (week: number) => {
+    const newWeekSettings = { currentWeek: week };
+    saveWeekSettings(newWeekSettings);
+  };
+
+  const updateRoutineName = (oldName: string, newName: string) => {
+    if (newName.trim() === '' || newName === oldName) return;
+
+    // Check if new name already exists
+    if (routines.some(routine => routine.name === newName)) {
+      alert('Ya existe una rutina con ese nombre');
+      return;
+    }
+
+    const newRoutines = routines.map(routine =>
+      routine.name === oldName ? { ...routine, name: newName } : routine
+    );
+    saveRoutines(newRoutines);
+  };
+
   const value = {
     routines,
+    weekSettings,
     addRoutine,
     updateRoutine,
     deleteRoutine,
     deleteWorkoutDay,
     updateWorkoutDay,
     updateDayName,
+    updateRoutineName,
+    updateCurrentWeek,
   };
 
   return (

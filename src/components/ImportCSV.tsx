@@ -268,9 +268,15 @@ export const ImportCSV = ({ onImportSuccess, onCancel }: ImportCSVProps) => {
           exercises: [],
         };
 
-        supersetRows.forEach((row, index) => {
+        supersetRows.forEach(row => {
+          // Crear ID consistente basado en el nombre del ejercicio
+          const exerciseName = row.Ejercicio.toLowerCase()
+            .replace(/[^a-z0-9]/g, '-') // Reemplazar caracteres especiales con guiones
+            .replace(/-+/g, '-') // Reducir múltiples guiones a uno
+            .replace(/^-|-$/g, ''); // Remover guiones al inicio y final
+
           const exercise: Exercise = {
-            id: `${dayNumber}-${supersetId}-${index}`,
+            id: `${dayNumber}-${supersetId}-${exerciseName}`,
             name: row.Ejercicio,
             type: 'reps', // Default, se puede mejorar con lógica más específica
             sets: [],

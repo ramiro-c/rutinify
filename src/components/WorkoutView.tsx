@@ -5,6 +5,7 @@ import { type Exercise } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { Calendar } from 'lucide-react';
 
 interface WorkoutViewProps {
   routineName: string;
@@ -20,31 +21,71 @@ type SessionData = Record<
 const ExerciseLogger = ({
   exercise,
   setIndex,
+  routineName,
+  day,
+  currentWeek,
 }: {
   exercise: Exercise;
   setIndex: number;
+  routineName: string;
+  day: number;
+  currentWeek: number;
 }) => {
-  const { getLatestExerciseData } = useWorkoutHistory();
-  const previousData = getLatestExerciseData(exercise.id);
+  const { getLatestExerciseData, getPreviousWeekExerciseData } =
+    useWorkoutHistory();
+
+  // Si no es semana 1, mostrar datos de la semana anterior
+  const previousWeekData =
+    currentWeek > 1
+      ? getPreviousWeekExerciseData(exercise.id, currentWeek, routineName, day)
+      : null;
+
+  // Si no hay datos de la semana anterior, usar el último entrenamiento general
+  const fallbackData = !previousWeekData
+    ? getLatestExerciseData(exercise.id)
+    : null;
+
+  const previousData = previousWeekData || fallbackData;
   const previousSet = previousData?.sets[setIndex];
 
+  // Debug específico para IDs
+  if (setIndex === 0) {
+    // Solo log en el primer set para evitar spam
+    console.log(
+      `🔍 Exercise ID Debug: "${exercise.name}" -> "${exercise.id}"`,
+      {
+        currentWeek,
+        foundPreviousWeekData: !!previousWeekData,
+        foundFallbackData: !!fallbackData,
+      }
+    );
+  }
+
   let previousSetDisplay = '-- kg x -- reps';
+  let weekIndicator = '';
+
   if (previousSet && (previousSet.weight || previousSet.reps)) {
     previousSetDisplay = `${previousSet.weight || 'PC'} kg x ${
       previousSet.reps || '-'
     } reps`;
+
+    // Agregar indicador de semana si es de la semana anterior
+    if (previousWeekData && currentWeek > 1) {
+      weekIndicator = ` (S${currentWeek - 1})`;
+    }
   }
 
   return (
     <p className="text-xs text-muted-foreground w-32 text-right shrink-0">
       {previousSetDisplay}
+      {weekIndicator}
     </p>
   );
 };
 
 export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
   // ... (state and handlers remain the same)
-  const { routines } = useRoutines();
+  const { routines, weekSettings } = useRoutines();
   const { addWorkoutSession } = useWorkoutHistory();
   const [sessionData, setSessionData] = useState<SessionData>({});
 
@@ -100,6 +141,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
     addWorkoutSession({
       routineName,
       dayCompleted: day,
+      week: weekSettings.currentWeek,
       completedExercises,
     });
     onBack(); // Go back to the list view
@@ -119,7 +161,15 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold tracking-tight">Día {day}</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-3xl font-bold tracking-tight">Día {day}</h2>
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">
+              Semana {weekSettings.currentWeek}
+            </span>
+          </div>
+        </div>
         <Button onClick={onBack} variant="outline">
           Cancelar
         </Button>
@@ -190,7 +240,13 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                           }
                         />
                       </div>
-                      <ExerciseLogger exercise={exercise} setIndex={setIndex} />
+                      <ExerciseLogger
+                        exercise={exercise}
+                        setIndex={setIndex}
+                        routineName={routineName}
+                        day={day}
+                        currentWeek={weekSettings.currentWeek}
+                      />
                     </div>
                   ))}
                 </div>

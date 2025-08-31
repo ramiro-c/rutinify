@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Trash2, Pencil, Dumbbell, Plus } from 'lucide-react';
 import { ActionFAB } from './ActionFAB';
 import { ImportCSV } from './ImportCSV';
+import { WeekSelector } from './WeekSelector';
 
 interface RoutineListProps {
   onStartWorkout: (routineName: string, day: number) => void;
@@ -112,6 +113,64 @@ const EditableDayTitle = ({
   );
 };
 
+const EditableRoutineName = ({
+  routineName,
+  onNameUpdate,
+}: {
+  routineName: string;
+  onNameUpdate: (oldName: string, newName: string) => void;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingName, setEditingName] = useState(routineName);
+
+  const handleSave = () => {
+    if (editingName.trim() && editingName !== routineName) {
+      onNameUpdate(routineName, editingName.trim());
+    }
+    setIsEditing(false);
+    setEditingName(routineName);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditingName(routineName);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          value={editingName}
+          onChange={e => setEditingName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          autoFocus
+          placeholder="Nombre de la rutina"
+          className="text-2xl font-semibold"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <span
+      onClick={() => setIsEditing(true)}
+      className="cursor-pointer hover:bg-muted/50 px-2 py-1 rounded text-2xl font-semibold tracking-tight"
+      title="Haz clic para editar el nombre"
+    >
+      {routineName}
+    </span>
+  );
+};
+
 export const RoutineList = ({
   onStartWorkout,
   onEditDay,
@@ -142,6 +201,7 @@ export const RoutineList = ({
     deleteRoutine,
     updateDayName,
     updateWorkoutDay,
+    updateRoutineName,
   } = useRoutines();
 
   const handleDeleteRoutine = (routineName: string) => {
@@ -250,6 +310,16 @@ export const RoutineList = ({
         </div>
       )}
 
+      {/* Selector de semana - visible siempre para prueba */}
+      <WeekSelector />
+
+      {/* Selector de semana - solo visible si hay rutinas */}
+      {routines.length > 0 && (
+        <div className="hidden">
+          <WeekSelector />
+        </div>
+      )}
+
       {routines.length === 0 && (
         <div className="text-center mt-8 border-2 border-dashed rounded-lg p-12">
           <p className="text-lg font-semibold">No se encontraron rutinas.</p>
@@ -262,9 +332,10 @@ export const RoutineList = ({
       {routines.map(routine => (
         <section key={routine.name} className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              {routine.name}
-            </h2>
+            <EditableRoutineName
+              routineName={routine.name}
+              onNameUpdate={updateRoutineName}
+            />
             <div className="flex items-center">
               <Button
                 variant="ghost"
@@ -387,9 +458,7 @@ export const RoutineList = ({
       ))}
 
       {/* FAB para acciones */}
-      <ActionFAB
-        onImportCSV={handleImportCSV}
-      />
+      <ActionFAB onImportCSV={handleImportCSV} />
     </div>
   );
 };

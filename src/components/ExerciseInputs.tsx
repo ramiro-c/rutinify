@@ -107,12 +107,12 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
           {sets.map((set, index) => (
             <div
               key={set.id}
-              className="flex items-center gap-2 p-3 border rounded-lg"
+              className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 border rounded-lg"
             >
               <span className="text-sm font-medium w-8">#{index + 1}</span>
 
               {set.type === 'reps' && (
-                <>
+                <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full">
                   <div className="flex-1">
                     <Label htmlFor={`weight-${set.id}`} className="text-xs">
                       Peso (kg)
@@ -141,7 +141,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                       placeholder="10"
                     />
                   </div>
-                </>
+                </div>
               )}
 
               {set.type === 'time' && (
@@ -161,7 +161,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
               )}
 
               {set.type === 'weight-time' && (
-                <>
+                <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full">
                   <div className="flex-1">
                     <Label htmlFor={`weight-${set.id}`} className="text-xs">
                       Peso (kg)
@@ -189,7 +189,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                       placeholder="1:00"
                     />
                   </div>
-                </>
+                </div>
               )}
 
               <Button
@@ -197,7 +197,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                 variant="outline"
                 size="icon"
                 onClick={() => removeSet(set.id)}
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive shrink-0 sm:ml-2"
                 aria-label={`Eliminar serie ${index + 1}`}
               >
                 <Trash2 className="h-4 w-4" />
