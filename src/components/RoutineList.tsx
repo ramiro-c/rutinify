@@ -195,10 +195,6 @@ export const RoutineList = ({
     }
   };
 
-  const handleCreateRoutine = () => {
-    setIsAddingNewRoutine(true);
-  };
-
   const handleImportCSV = () => {
     setShowImportCSV(true);
   };
@@ -392,7 +388,6 @@ export const RoutineList = ({
 
       {/* FAB para acciones */}
       <ActionFAB
-        onCreateRoutine={handleCreateRoutine}
         onImportCSV={handleImportCSV}
       />
     </div>
