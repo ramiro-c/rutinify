@@ -1,8 +1,34 @@
+export type ExerciseType = 'reps' | 'time' | 'weight-time';
+
+export interface BaseSet {
+  id: string;
+  completed?: boolean;
+}
+
+export interface RepsSet extends BaseSet {
+  type: 'reps';
+  weight: number;
+  reps: number;
+}
+
+export interface TimeSet extends BaseSet {
+  type: 'time';
+  duration: string; // "2:30" o "45" (acepta ambos formatos)
+}
+
+export interface WeightTimeSet extends BaseSet {
+  type: 'weight-time';
+  weight: number;
+  duration: string; // "1:15"
+}
+
+export type ExerciseSet = RepsSet | TimeSet | WeightTimeSet;
+
 export interface Exercise {
   id: string;
   name: string;
-  series: string;
-  reps: string;
+  type: ExerciseType;
+  sets: ExerciseSet[];
   tempo: string;
   supersetCode: string; // e.g., "A1", "B2"
   notes?: string;
