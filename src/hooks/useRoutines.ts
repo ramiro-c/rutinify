@@ -1,106 +1,7 @@
 import { useState, useEffect } from 'react';
-import {
-  type Routine,
-  type WorkoutDay,
-  type Superset,
-  type Exercise,
-} from '../types';
-import rawRoutineCsv from '../../data/rutina-ejemplo.csv?raw';
+import { type Routine, type WorkoutDay } from '../types';
 
 const ROUTINES_STORAGE_KEY = 'rutinify-routines';
-
-// Helper function to parse the raw CSV data
-const parseRoutineCsv = (csv: string): Routine[] => {
-  const lines = csv.split('\r\n').filter(line => line.trim() !== '');
-  const headers = lines[0].split(',');
-
-  const routineData = lines.slice(1).reduce(
-    (acc, line) => {
-      const values = line.split(',');
-      const entry = headers.reduce(
-        (obj, header, index) => {
-          obj[header.trim()] = values[index] ? values[index].trim() : '';
-          return obj;
-        },
-        {} as Record<string, string>
-      );
-
-      const day = parseInt(entry['Día'], 10);
-      if (!isNaN(day)) {
-        if (!acc[day]) {
-          acc[day] = [];
-        }
-        acc[day].push(entry);
-      }
-      return acc;
-    },
-    {} as Record<number, Record<string, string>[]>
-  );
-
-  const days: WorkoutDay[] = Object.keys(routineData).map(dayNumberStr => {
-    const day = parseInt(dayNumberStr, 10);
-    const exercisesForDay = routineData[day];
-
-    const supersetData = exercisesForDay.reduce(
-      (acc, ex) => {
-        const supersetGroup = ex['Superserie'].replace(/\d/g, ''); // A1 -> A
-        if (!acc[supersetGroup]) {
-          acc[supersetGroup] = [];
-        }
-        acc[supersetGroup].push(ex);
-        return acc;
-      },
-      {} as Record<string, Record<string, string>[]>
-    );
-
-    const supersets: Superset[] = Object.keys(supersetData).map(
-      supersetGroup => {
-        const exercises: Exercise[] = supersetData[supersetGroup].map(
-          (ex: Record<string, string>) => {
-            const seriesCount = parseInt(ex['Series'], 10) || 3;
-            const repsCount = parseInt(ex['Reps'], 10) || 10;
-
-            // Crear sets basados en las series
-            const sets = Array.from({ length: seriesCount }, () => ({
-              id: crypto.randomUUID(),
-              type: 'reps' as const,
-              weight: 0,
-              reps: repsCount,
-              completed: false,
-            }));
-
-            return {
-              id: crypto.randomUUID(),
-              name: ex['Ejercicio'],
-              type: 'reps' as const,
-              sets,
-              tempo: ex['Tempo'],
-              supersetCode: ex['Superserie'],
-              notes: ex['Notas'],
-            };
-          }
-        );
-        return {
-          id: supersetGroup,
-          exercises,
-        };
-      }
-    );
-
-    return {
-      day,
-      dayName: `Día ${day}`,
-      supersets,
-    };
-  });
-
-  const initialRoutine: Routine = {
-    name: 'Mi Rutina Actual',
-    days: days.sort((a, b) => a.day - b.day),
-  };
-
-  return [initialRoutine];
-};
 
 export const useRoutines = () => {
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -108,10 +9,8 @@ export const useRoutines = () => {
 
   const saveRoutines = (newRoutines: Routine[]) => {
     try {
-      console.log('saveRoutines called with:', newRoutines.length, 'routines');
       localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(newRoutines));
       setRoutines(newRoutines);
-      console.log('State updated with:', newRoutines.length, 'routines');
     } catch (error) {
       console.error('Failed to save routines to localStorage', error);
     }
@@ -120,20 +19,13 @@ export const useRoutines = () => {
   useEffect(() => {
     if (isInitialized) return; // Prevenir re-inicialización
 
-    console.log('useRoutines useEffect triggered');
     try {
       const storedRoutines = localStorage.getItem(ROUTINES_STORAGE_KEY);
-      console.log(
-        'localStorage value:',
-        storedRoutines ? JSON.parse(storedRoutines).length : 'null'
-      );
       if (storedRoutines) {
         setRoutines(JSON.parse(storedRoutines));
       } else {
-        console.log('No localStorage found, loading initial routines');
-        // Solo cargar datos de ejemplo si es la primera vez (no hay localStorage)
-        const initialRoutines = parseRoutineCsv(rawRoutineCsv);
-        saveRoutines(initialRoutines);
+        // Comenzar con array vacío en la primera carga
+        setRoutines([]);
       }
       setIsInitialized(true);
     } catch (error) {
@@ -145,16 +37,12 @@ export const useRoutines = () => {
   }, [isInitialized]);
 
   const addRoutine = (routine: Routine) => {
-    console.log('addRoutine called with:', routine.name);
     setRoutines(currentRoutines => {
-      console.log('addRoutine - Current routines:', currentRoutines.length);
       const newRoutines = [...currentRoutines, routine];
-      console.log('addRoutine - New routines:', newRoutines.length);
 
       // Actualizar localStorage inmediatamente
       try {
         localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(newRoutines));
-        console.log('addRoutine - localStorage updated');
       } catch (error) {
         console.error('Failed to save to localStorage in addRoutine', error);
       }
@@ -195,7 +83,7 @@ export const useRoutines = () => {
         }
         return routine;
       })
-      .filter(Boolean) as Routine[]; // filter(Boolean) removes nulls
+      .filter(Boolean) as Routine[];
     saveRoutines(newRoutines);
   };
 

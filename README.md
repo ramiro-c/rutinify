@@ -291,6 +291,21 @@ src/
 
 ## 📝 Historial de Versiones
 
+### **v1.4.1** _(31 de agosto de 2025)_
+
+- **🚀 Deployment Ready**: Eliminación completa de dependencias a archivos locales
+  - Removida carpeta `data/` y todas sus referencias
+  - Eliminado archivo CSV de ejemplo embebido
+  - La aplicación ahora comienza completamente vacía en la primera carga
+- **🎯 Clean Start Experience**:
+  - Los usuarios empiezan con una aplicación vacía
+  - FAB visible inmediatamente para guiar a crear rutinas o importar CSV
+  - Flujo optimizado para nuevos usuarios
+- **🛠️ Code Cleanup**:
+  - Eliminación de funciones de parsing CSV embebido
+  - Simplificación del contexto de rutinas
+  - Reducción del bundle size al remover datos estáticos
+
 ### **v1.4.0** _(31 de agosto de 2025)_
 
 - **🔧 Refactor de Estado**: Migración completa a Context API para gestión de estado global
