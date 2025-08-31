@@ -199,6 +199,7 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                       onClick={() =>
                         handleRemoveExercise(superset.id, exercise.id)
                       }
+                      aria-label={`Eliminar ejercicio ${exercise.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

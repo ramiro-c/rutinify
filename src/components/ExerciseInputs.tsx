@@ -198,6 +198,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                 size="icon"
                 onClick={() => removeSet(set.id)}
                 className="text-destructive hover:text-destructive"
+                aria-label={`Eliminar serie ${index + 1}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

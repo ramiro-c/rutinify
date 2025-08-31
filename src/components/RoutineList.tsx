@@ -65,32 +65,17 @@ const AddRoutineForm = ({
 };
 
 const AddDayForm = ({
-  routineName,
   onAddDay,
+  routinesLength,
 }: {
-  routineName: string;
   onAddDay: (dayNumber: number, dayName?: string) => void;
+  routinesLength: number;
 }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const [dayNumber, setDayNumber] = useState('');
   const [dayName, setDayName] = useState('');
-  const { routines } = useRoutines();
 
   const handleSave = () => {
-    const num = parseInt(dayNumber, 10);
-    if (isNaN(num) || num <= 0) {
-      alert('Por favor, introduce un número de día válido (ej. 1, 2, 3).');
-      return;
-    }
-
-    const routine = routines.find(r => r.name === routineName);
-    if (routine && routine.days.some(d => d.day === num)) {
-      alert(`El Día ${num} ya existe en esta rutina.`);
-      return;
-    }
-
-    onAddDay(num, dayName.trim() || undefined);
-    setDayNumber('');
+    onAddDay(routinesLength + 1, dayName.trim() || undefined);
     setDayName('');
     setIsAdding(false);
   };
@@ -252,7 +237,7 @@ export const RoutineList = ({
             </h2>
             <div className="flex items-center gap-2">
               <AddDayForm
-                routineName={routine.name}
+                routinesLength={routines.length}
                 onAddDay={(dayNum, dayName) =>
                   handleAddDay(routine.name, dayNum, dayName)
                 }
@@ -262,7 +247,7 @@ export const RoutineList = ({
                 size="icon"
                 className="text-destructive hover:text-destructive"
                 onClick={() => handleDeleteRoutine(routine.name)}
-                title={`Eliminar rutina ${routine.name}`}
+                aria-label={`Eliminar rutina ${routine.name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -323,6 +308,7 @@ export const RoutineList = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => onEditDay(routine.name, day.day)}
+                          aria-label={`Editar ${day.dayName || `Día ${day.day}`}`}
                         >
                           <Pencil className="h-5 w-5" />
                         </Button>
@@ -333,6 +319,7 @@ export const RoutineList = ({
                           onClick={() =>
                             deleteWorkoutDay(routine.name, day.day)
                           }
+                          aria-label={`Eliminar ${day.dayName || `Día ${day.day}`}`}
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
