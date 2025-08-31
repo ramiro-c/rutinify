@@ -31,8 +31,10 @@ Rutinify es una aplicación web diseñada para simplificar la creación, gestió
 
 - **Tema Claro/Oscuro**: Cambia entre temas con persistencia en localStorage
 - **Interfaz Responsive**: Diseño adaptable para dispositivos móviles y desktop
+- **Formularios Optimizados**: Formularios de creación sin desplazamiento de contenido para mejor UX
 - **Estilos de Focus Optimizados**: Elementos interactivos con indicadores visuales sutiles y accesibles
 - **Iconografía Consistente**: Icons de Lucide React para una experiencia visual coherente
+- **Layout Estable**: Interfaz que mantiene posicionamiento consistente durante interacciones
 
 ### ♿ **Accesibilidad**
 
@@ -276,3 +278,33 @@ src/
 ├── utils/              # Utilidades y helpers
 └── lib/                # Configuraciones y funciones auxiliares
 ```
+
+## 📝 Historial de Versiones
+
+### **v1.2.1** *(31 de agosto de 2025)*
+- **🎨 Mejora de UX**: Optimización de formularios de creación
+  - Los formularios "Añadir Rutina" y "Añadir Día" ahora aparecen a nivel global
+  - Eliminado el desplazamiento de contenido al mostrar formularios
+  - Estilo unificado para ambos botones de agregar (variant ghost)
+  - Layout más estable y predecible durante interacciones
+
+### **v1.2.0** *(30 de agosto de 2025)*
+- **♿ Accesibilidad**: Mejoras completas de accesibilidad
+  - Agregadas etiquetas ARIA a todos los botones de iconos
+  - Optimización para lectores de pantalla
+- **🌐 SEO**: Optimización para motores de búsqueda
+  - Meta descripción y tags HTML apropiados
+  - Archivo robots.txt configurado
+  - Favicon SVG inline optimizado
+- **📚 Documentación**: README completamente reescrito
+  - Documentación detallada de funcionalidades
+  - Guía de instalación y uso
+  - Especificaciones técnicas completas
+
+### **v1.0.0+** *(Desarrollo inicial)*
+- Implementación del sistema base de rutinas
+- Sistema de ejercicios con múltiples tipos
+- Modo de entrenamiento en vivo
+- Historial de entrenamientos
+- Tema claro/oscuro
+- Persistencia en LocalStorage

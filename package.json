@@ -1,7 +1,7 @@
 {
   "name": "rutinify",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Aplicación web para gestionar y seguir rutinas de entrenamiento de gimnasio",
   "type": "module",
   "keywords": [
