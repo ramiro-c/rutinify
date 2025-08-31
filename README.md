@@ -281,14 +281,16 @@ src/
 
 ## 📝 Historial de Versiones
 
-### **v1.2.1** *(31 de agosto de 2025)*
+### **v1.2.1** _(31 de agosto de 2025)_
+
 - **🎨 Mejora de UX**: Optimización de formularios de creación
   - Los formularios "Añadir Rutina" y "Añadir Día" ahora aparecen a nivel global
   - Eliminado el desplazamiento de contenido al mostrar formularios
   - Estilo unificado para ambos botones de agregar (variant ghost)
   - Layout más estable y predecible durante interacciones
 
-### **v1.2.0** *(30 de agosto de 2025)*
+### **v1.2.0** _(30 de agosto de 2025)_
+
 - **♿ Accesibilidad**: Mejoras completas de accesibilidad
   - Agregadas etiquetas ARIA a todos los botones de iconos
   - Optimización para lectores de pantalla
@@ -301,7 +303,8 @@ src/
   - Guía de instalación y uso
   - Especificaciones técnicas completas
 
-### **v1.0.0+** *(Desarrollo inicial)*
+### **v1.0.0+** _(Desarrollo inicial)_
+
 - Implementación del sistema base de rutinas
 - Sistema de ejercicios con múltiples tipos
 - Modo de entrenamiento en vivo
