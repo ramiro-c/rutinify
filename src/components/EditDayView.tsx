@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRoutines } from '../hooks/useRoutines';
+import { useRoutines } from '../hooks/useRoutinesContext';
 import {
   type WorkoutDay,
   type Exercise,

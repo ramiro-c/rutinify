@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import {
   type Routine,
   type WorkoutDay,
@@ -102,59 +103,97 @@ const parseRoutineCsv = (csv: string): Routine[] => {
   return [initialRoutine];
 };
 
-export const useRoutines = () => {
+interface RoutinesContextType {
+  routines: Routine[];
+  addRoutine: (routine: Routine) => void;
+  updateRoutine: (updatedRoutine: Routine) => void;
+  deleteRoutine: (routineName: string) => void;
+  deleteWorkoutDay: (routineName: string, dayToDelete: number) => void;
+  updateWorkoutDay: (
+    routineName: string,
+    dayNumber: number,
+    updatedDay: WorkoutDay
+  ) => void;
+  updateDayName: (
+    routineName: string,
+    dayNumber: number,
+    newDayName: string
+  ) => void;
+}
+
+const RoutinesContext = createContext<RoutinesContextType | undefined>(
+  undefined
+);
+
+export { RoutinesContext };
+
+let isGloballyInitialized = false;
+
+export const RoutinesProvider = ({ children }: { children: ReactNode }) => {
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const saveRoutines = (newRoutines: Routine[]) => {
     try {
-      console.log('saveRoutines called with:', newRoutines.length, 'routines');
+      console.log(
+        '[RoutinesContext] saveRoutines called with:',
+        newRoutines.length,
+        'routines'
+      );
       localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(newRoutines));
       setRoutines(newRoutines);
-      console.log('State updated with:', newRoutines.length, 'routines');
+      console.log(
+        '[RoutinesContext] State updated with:',
+        newRoutines.length,
+        'routines'
+      );
     } catch (error) {
       console.error('Failed to save routines to localStorage', error);
     }
   };
 
   useEffect(() => {
-    if (isInitialized) return; // Prevenir re-inicialización
+    if (isGloballyInitialized) return;
 
-    console.log('useRoutines useEffect triggered');
+    console.log('[RoutinesContext] Initializing...');
     try {
       const storedRoutines = localStorage.getItem(ROUTINES_STORAGE_KEY);
       console.log(
-        'localStorage value:',
+        '[RoutinesContext] localStorage value:',
         storedRoutines ? JSON.parse(storedRoutines).length : 'null'
       );
+
       if (storedRoutines) {
         setRoutines(JSON.parse(storedRoutines));
       } else {
-        console.log('No localStorage found, loading initial routines');
-        // Solo cargar datos de ejemplo si es la primera vez (no hay localStorage)
+        console.log(
+          '[RoutinesContext] No localStorage found, loading initial routines'
+        );
         const initialRoutines = parseRoutineCsv(rawRoutineCsv);
         saveRoutines(initialRoutines);
       }
-      setIsInitialized(true);
+
+      isGloballyInitialized = true;
     } catch (error) {
       console.error('Failed to load routines', error);
-      // En caso de error, comenzar con array vacío
       setRoutines([]);
-      setIsInitialized(true);
+      isGloballyInitialized = true;
     }
-  }, [isInitialized]);
+  }, []);
 
   const addRoutine = (routine: Routine) => {
-    console.log('addRoutine called with:', routine.name);
+    console.log('[RoutinesContext] addRoutine called with:', routine.name);
     setRoutines(currentRoutines => {
-      console.log('addRoutine - Current routines:', currentRoutines.length);
+      console.log(
+        '[RoutinesContext] Current routines:',
+        currentRoutines.length
+      );
       const newRoutines = [...currentRoutines, routine];
-      console.log('addRoutine - New routines:', newRoutines.length);
+      console.log('[RoutinesContext] New routines:', newRoutines.length);
 
       // Actualizar localStorage inmediatamente
       try {
         localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(newRoutines));
-        console.log('addRoutine - localStorage updated');
+        console.log('[RoutinesContext] localStorage updated');
       } catch (error) {
         console.error('Failed to save to localStorage in addRoutine', error);
       }
@@ -184,7 +223,6 @@ export const useRoutines = () => {
           const updatedDays = routine.days.filter(
             day => day.day !== dayToDelete
           );
-          // If this was the last day, remove the routine entirely
           if (updatedDays.length === 0) {
             return null;
           }
@@ -195,7 +233,7 @@ export const useRoutines = () => {
         }
         return routine;
       })
-      .filter(Boolean) as Routine[]; // filter(Boolean) removes nulls
+      .filter(Boolean) as Routine[];
     saveRoutines(newRoutines);
   };
 
@@ -210,10 +248,8 @@ export const useRoutines = () => {
         const newDays = [...routine.days];
 
         if (dayIndex === -1) {
-          // Day not found, add it
           newDays.push(updatedDay);
         } else {
-          // Day found, update it
           newDays[dayIndex] = updatedDay;
         }
 
@@ -254,26 +290,19 @@ export const useRoutines = () => {
     saveRoutines(newRoutines);
   };
 
-  const refreshRoutines = () => {
-    try {
-      const storedRoutines = localStorage.getItem(ROUTINES_STORAGE_KEY);
-      if (storedRoutines) {
-        setRoutines(JSON.parse(storedRoutines));
-      }
-    } catch (error) {
-      console.error('Failed to refresh routines', error);
-    }
-  };
-
-  return {
+  const value = {
     routines,
-    setRoutines: saveRoutines,
     addRoutine,
     updateRoutine,
     deleteRoutine,
     deleteWorkoutDay,
     updateWorkoutDay,
     updateDayName,
-    refreshRoutines,
   };
+
+  return (
+    <RoutinesContext.Provider value={value}>
+      {children}
+    </RoutinesContext.Provider>
+  );
 };

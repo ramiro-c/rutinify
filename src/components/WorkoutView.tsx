@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRoutines } from '../hooks/useRoutines';
+import { useRoutines } from '../hooks/useRoutinesContext';
 import { useWorkoutHistory } from '../hooks/useWorkoutHistory';
 import { type Exercise } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';

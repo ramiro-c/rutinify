@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { RoutineList } from './components/RoutineList';
 import { WorkoutView } from './components/WorkoutView';
 import { EditDayView } from './components/EditDayView';
+import { RoutinesProvider } from './contexts/RoutinesContext';
 
 type View = 'list' | 'workout' | 'edit_day';
 
@@ -34,30 +35,32 @@ function App() {
   };
 
   return (
-    <Layout onGoHome={handleBackToList}>
-      {view === 'list' && (
-        <RoutineList
-          onStartWorkout={handleStartWorkout}
-          onEditDay={handleEditDay}
-        />
-      )}
+    <RoutinesProvider>
+      <Layout onGoHome={handleBackToList}>
+        {view === 'list' && (
+          <RoutineList
+            onStartWorkout={handleStartWorkout}
+            onEditDay={handleEditDay}
+          />
+        )}
 
-      {view === 'workout' && activeWorkout && (
-        <WorkoutView
-          routineName={activeWorkout.routineName}
-          day={activeWorkout.day}
-          onBack={handleBackToList}
-        />
-      )}
+        {view === 'workout' && activeWorkout && (
+          <WorkoutView
+            routineName={activeWorkout.routineName}
+            day={activeWorkout.day}
+            onBack={handleBackToList}
+          />
+        )}
 
-      {view === 'edit_day' && editingDay && (
-        <EditDayView
-          routineName={editingDay.routineName}
-          day={editingDay.day}
-          onBack={handleBackToList}
-        />
-      )}
-    </Layout>
+        {view === 'edit_day' && editingDay && (
+          <EditDayView
+            routineName={editingDay.routineName}
+            day={editingDay.day}
+            onBack={handleBackToList}
+          />
+        )}
+      </Layout>
+    </RoutinesProvider>
   );
 }
 

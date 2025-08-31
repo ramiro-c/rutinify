@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRoutines } from '../hooks/useRoutines';
+import { useRoutines } from '../hooks/useRoutinesContext';
 import {
   Card,
   CardContent,
@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Pencil, Dumbbell, Plus } from 'lucide-react';
+import { ActionFAB } from './ActionFAB';
+import { ImportCSV } from './ImportCSV';
 
 interface RoutineListProps {
   onStartWorkout: (routineName: string, day: number) => void;
@@ -120,6 +122,7 @@ export const RoutineList = ({
   const [dayName, setDayName] = useState('');
   const [selectedRoutineForDay, setSelectedRoutineForDay] =
     useState<string>('');
+  const [showImportCSV, setShowImportCSV] = useState(false);
 
   const handleAddRoutine = (isAddingNewRoutine: boolean) =>
     setIsAddingNewRoutine(isAddingNewRoutine);
@@ -191,6 +194,34 @@ export const RoutineList = ({
       setSelectedRoutineForDay('');
     }
   };
+
+  const handleCreateRoutine = () => {
+    setIsAddingNewRoutine(true);
+  };
+
+  const handleImportCSV = () => {
+    setShowImportCSV(true);
+  };
+
+  const handleImportSuccess = () => {
+    setShowImportCSV(false);
+  };
+
+  const handleImportCancel = () => {
+    setShowImportCSV(false);
+  };
+
+  // Si está mostrando la importación de CSV, mostrar solo eso
+  if (showImportCSV) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <ImportCSV
+          onImportSuccess={handleImportSuccess}
+          onCancel={handleImportCancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -325,6 +356,7 @@ export const RoutineList = ({
                       <Button
                         size="sm"
                         onClick={() => onStartWorkout(routine.name, day.day)}
+                        className="cursor-pointer"
                       >
                         <Dumbbell className="mr-2 h-4 w-4" /> Iniciar
                       </Button>
@@ -357,6 +389,12 @@ export const RoutineList = ({
           )}
         </section>
       ))}
+
+      {/* FAB para acciones */}
+      <ActionFAB
+        onCreateRoutine={handleCreateRoutine}
+        onImportCSV={handleImportCSV}
+      />
     </div>
   );
 };

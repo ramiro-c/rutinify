@@ -27,6 +27,14 @@ Rutinify es una aplicación web diseñada para simplificar la creación, gestió
 - **Historial Integrado**: Ve tu rendimiento anterior para cada ejercicio y enfócate en la progresión
 - **Notas por Ejercicio**: Registra observaciones específicas durante el entrenamiento
 
+### 📁 **Importación de Rutinas CSV**
+
+- **Importación Completa desde CSV**: Importa rutinas completas desde archivos CSV
+- **Formato Estricto**: Validación automática del formato requerido (basado en el archivo ejemplo)
+- **Vista Previa**: Visualiza ejercicios antes de confirmar la importación
+- **Actualización Automática**: Las rutinas importadas aparecen inmediatamente sin refresh
+- **FAB Mobile**: Botón de acción flotante optimizado para dispositivos móviles
+
 ### 🎨 **Experiencia de Usuario**
 
 - **Tema Claro/Oscuro**: Cambia entre temas con persistencia en localStorage
@@ -47,8 +55,8 @@ Rutinify es una aplicación web diseñada para simplificar la creación, gestió
 
 - **LocalStorage**: Todos los datos se guardan localmente en tu navegador
 - **Historial de Sesiones**: Registro completo de entrenamientos anteriores
-- **Sincronización de Estado**: Estado reactivo que se actualiza automáticamente
-- **Carga Inicial desde CSV**: Soporte para cargar rutinas desde archivos CSV
+- **Sincronización de Estado**: Estado reactivo que se actualiza automáticamente con Context API
+- **Carga Inicial desde CSV**: Soporte para cargar rutinas desde archivos CSV con validación estricta
 
 ## Fases del Proyecto
 
@@ -77,11 +85,12 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 - **Optimización de Focus**: Estilos de focus consistentes y sutiles en toda la aplicación
 - **Sincronización de Estado**: Corrección de problemas de estado para actualizaciones en tiempo real
 
-### Fase 3: Importación y Exportación de Datos (🔄 **Pendiente**)
+### Fase 3: Importación y Exportación de Datos (✅ **Completada parcialmente**)
 
-- **Exportación a CSV**: Permitir la descarga de rutinas y el historial de progreso en formato CSV
-- **Importación desde CSV**: Permitir la creación o actualización de rutinas a partir de archivos CSV
-- **Backup y Restauración**: Sistema de respaldo completo de datos de usuario
+- **Importación desde CSV**: ✅ Implementado - Sistema completo de importación con validación estricta
+- **Floating Action Button**: ✅ Implementado - FAB móvil para acceso rápido a funciones de importación
+- **Exportación a CSV**: 🔄 Pendiente - Permitir la descarga de rutinas y el historial de progreso
+- **Backup y Restauración**: 🔄 Pendiente - Sistema de respaldo completo de datos de usuario
 
 ### Fase 4: PWA y Despliegue (🔄 **En Progreso**)
 
@@ -93,7 +102,7 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 
 - **Integración con Google Sheets**: Sincronización de rutinas y progreso con Google Sheets
 - **Analytics de Progreso**: Gráficos y estadísticas de rendimiento a largo plazo
-- **Compartir Rutinas**: Sistema para compartir y importar rutinas de otros usuarios
+- **Compartir Rutinas**: Sistema para compartir e importar rutinas de otros usuarios
 
 ## Tecnologías Utilizadas
 
@@ -121,9 +130,10 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 ### 🏗️ **Arquitectura**
 
 - **Hooks Personalizados**: `useRoutines`, `useWorkoutHistory`, `useTheme`
-- **Context API**: Gestión de estado global para temas
+- **Context API**: Gestión de estado global para rutinas y temas con RoutinesProvider
 - **LocalStorage**: Persistencia de datos en el navegador
 - **Component Composition**: Arquitectura de componentes reutilizables
+- **CSV Parser**: Sistema robusto de parsing con validación y manejo de errores
 
 ### ♿ **Accesibilidad y Calidad**
 
@@ -280,6 +290,38 @@ src/
 ```
 
 ## 📝 Historial de Versiones
+
+### **v1.4.0** _(31 de agosto de 2025)_
+
+- **🔧 Refactor de Estado**: Migración completa a Context API para gestión de estado global
+  - Eliminación de problemas de sincronización entre componentes
+  - Estado centralizado con RoutinesProvider y RoutinesContext
+  - Corrección definitiva del problema de actualización automática post-importación
+- **📁 Importación CSV Refinada**:
+  - Importación ahora funciona perfectamente sin necesidad de refresh
+  - Validación mejorada con mensajes de error específicos por fila
+  - Mejor manejo de estado durante el proceso de importación
+- **🎯 Mejoras de Arquitectura**:
+  - Separación limpia entre lógica de estado y componentes
+  - Hooks especializados para contextos específicos
+  - Mejor organización del código con separación de responsabilidades
+
+### **v1.3.0** _(31 de agosto de 2025)_
+
+- **📁 Importación CSV**: Nueva funcionalidad para importar rutinas desde CSV
+  - Soporte completo para el formato del CSV de ejemplo en `/data`
+  - Validación estricta de headers y estructura de datos
+  - Vista previa antes de importar con validación en tiempo real
+  - FAB expandible para acceso rápido a importar CSV y crear rutinas
+- **🎨 Mejora de UX Mobile**:
+  - Floating Action Button (FAB) optimizado para experiencia móvil
+  - Modal de importación fullscreen en dispositivos móviles
+  - Navegación intuitiva con gestos y overlays
+- **🛠️ Validaciones Robustas**:
+  - Parser CSV con manejo de errores detallado
+  - Conversión automática de formatos de superseries
+  - Soporte para filas vacías como separadores
+  - Retroalimentación de errores específica por fila y campo
 
 ### **v1.2.1** _(31 de agosto de 2025)_
 
