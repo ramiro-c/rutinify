@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRoutines } from '../hooks/useRoutines';
+import { type Routine } from '../types';
 import {
   Card,
   CardContent,
@@ -16,10 +17,15 @@ interface RoutineListProps {
   onEditDay: (routineName: string, day: number) => void;
 }
 
-const AddRoutineForm = () => {
+const AddRoutineForm = ({
+  addRoutine,
+  routines,
+}: {
+  addRoutine: (routine: { name: string; days: Routine['days'] }) => void;
+  routines: Routine[];
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [routineName, setRoutineName] = useState('');
-  const { addRoutine, routines } = useRoutines();
 
   const handleSave = () => {
     const trimmedName = routineName.trim();
@@ -99,14 +105,6 @@ const AddDayForm = ({
 
   return (
     <div className="flex gap-2 items-center flex-wrap">
-      <Input
-        type="number"
-        placeholder="Número (ej. 2)"
-        value={dayNumber}
-        onChange={e => setDayNumber(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleSave()}
-        className="w-24"
-      />
       <Input
         type="text"
         placeholder="Nombre (opcional)"
@@ -197,6 +195,7 @@ export const RoutineList = ({
 }: RoutineListProps) => {
   const {
     routines,
+    addRoutine,
     deleteWorkoutDay,
     deleteRoutine,
     updateDayName,
@@ -233,7 +232,7 @@ export const RoutineList = ({
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Mis Rutinas</h1>
-        <AddRoutineForm />
+        <AddRoutineForm addRoutine={addRoutine} routines={routines} />
       </div>
 
       {routines.length === 0 && (
