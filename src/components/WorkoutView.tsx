@@ -139,7 +139,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     <span className="font-medium">
-                      {exercise.series}x{exercise.reps}
+                      {exercise.sets.length} series
                     </span>{' '}
                     | Tempo: {exercise.tempo} |{' '}
                     <span className="font-mono bg-muted rounded px-1.5 py-0.5 text-xs">
@@ -155,7 +155,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
 
                 <div className="space-y-2">
                   {Array.from({
-                    length: parseInt(exercise.series, 10) || 1,
+                    length: exercise.sets.length || 1,
                   }).map((_, setIndex) => (
                     <div
                       key={setIndex}

@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useRoutines } from '../hooks/useRoutines';
-import { type WorkoutDay, type Exercise } from '../types';
+import {
+  type WorkoutDay,
+  type Exercise,
+  type ExerciseType,
+  type ExerciseSet,
+  type RepsSet,
+  type TimeSet,
+  type WeightTimeSet,
+} from '../types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Trash2, Plus } from 'lucide-react';
+import { ExerciseTypeSelector, SetInputs } from './ExerciseInputs';
+import { migrateExercise, createNewExercise } from '../utils/exerciseMigration';
 
 interface EditDayViewProps {
   routineName: string;
@@ -20,14 +30,26 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
   useEffect(() => {
     const routine = routines.find(r => r.name === routineName);
     const dayData = routine?.days.find(d => d.day === day);
+
     if (dayData) {
-      setEditedDay(JSON.parse(JSON.stringify(dayData)));
+      // Migrar ejercicios al nuevo formato si es necesario
+      const migratedDay = {
+        ...dayData,
+        supersets: dayData.supersets.map(superset => ({
+          ...superset,
+          exercises: superset.exercises.map(exercise =>
+            migrateExercise(exercise)
+          ),
+        })),
+      };
+      setEditedDay(migratedDay);
     } else {
       // If day doesn't exist, initialize a new one
-      setEditedDay({
+      const newDay = {
         day: day,
         supersets: [],
-      });
+      };
+      setEditedDay(newDay);
     }
   }, [routines, routineName, day]);
 
@@ -46,7 +68,7 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
     supersetId: string,
     exerciseId: string,
     field: keyof Exercise,
-    value: string
+    value: string | ExerciseType | ExerciseSet[]
   ) => {
     if (!editedDay) return;
     const newDay = { ...editedDay };
@@ -54,7 +76,44 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
     if (!superset) return;
     const exercise = superset.exercises.find(e => e.id === exerciseId);
     if (!exercise) return;
-    (exercise as unknown as Record<string, unknown>)[field] = value;
+
+    // Si se está cambiando el tipo de ejercicio, actualizar los sets
+    if (field === 'type' && typeof value === 'string') {
+      const newType = value as ExerciseType;
+      exercise.type = newType;
+
+      // Recrear sets según el nuevo tipo
+      const currentSetsCount = exercise.sets.length || 3;
+      exercise.sets = Array.from({ length: currentSetsCount }, () => {
+        if (newType === 'reps') {
+          return {
+            id: crypto.randomUUID(),
+            type: 'reps',
+            weight: 0,
+            reps: 10,
+            completed: false,
+          } as RepsSet;
+        } else if (newType === 'time') {
+          return {
+            id: crypto.randomUUID(),
+            type: 'time',
+            duration: '0:30',
+            completed: false,
+          } as TimeSet;
+        } else {
+          return {
+            id: crypto.randomUUID(),
+            type: 'weight-time',
+            weight: 0,
+            duration: '1:00',
+            completed: false,
+          } as WeightTimeSet;
+        }
+      });
+    } else {
+      (exercise as unknown as Record<string, unknown>)[field] = value;
+    }
+
     setEditedDay(newDay);
   };
 
@@ -64,15 +123,9 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
     const superset = newDay.supersets.find(s => s.id === supersetId);
     if (!superset) return;
 
-    const newExercise: Exercise = {
-      id: crypto.randomUUID(),
-      name: 'Nuevo Ejercicio',
-      series: '3',
-      reps: '10',
-      tempo: '2010',
-      supersetCode: `${superset.id}${superset.exercises.length + 1}`,
-      notes: '',
-    };
+    const newExercise = createNewExercise(
+      `${superset.id}${superset.exercises.length + 1}`
+    );
     superset.exercises.push(newExercise);
     setEditedDay(newDay);
   };
@@ -185,36 +238,20 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                         }
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor={`ex-series-${exercise.id}`}>Series</Label>
-                      <Input
-                        id={`ex-series-${exercise.id}`}
-                        value={exercise.series}
-                        onChange={e =>
-                          handleExerciseChange(
-                            superset.id,
-                            exercise.id,
-                            'series',
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor={`ex-reps-${exercise.id}`}>Reps</Label>
-                      <Input
-                        id={`ex-reps-${exercise.id}`}
-                        value={exercise.reps}
-                        onChange={e =>
-                          handleExerciseChange(
-                            superset.id,
-                            exercise.id,
-                            'reps',
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ExerciseTypeSelector
+                      value={exercise.type}
+                      onChange={type =>
+                        handleExerciseChange(
+                          superset.id,
+                          exercise.id,
+                          'type',
+                          type
+                        )
+                      }
+                    />
                     <div className="space-y-1.5">
                       <Label htmlFor={`ex-tempo-${exercise.id}`}>Tempo</Label>
                       <Input
@@ -231,6 +268,20 @@ export const EditDayView = ({ routineName, day, onBack }: EditDayViewProps) => {
                       />
                     </div>
                   </div>
+
+                  <SetInputs
+                    sets={exercise.sets}
+                    exerciseType={exercise.type}
+                    onChange={sets =>
+                      handleExerciseChange(
+                        superset.id,
+                        exercise.id,
+                        'sets',
+                        sets
+                      )
+                    }
+                  />
+
                   <div className="space-y-1.5">
                     <Label htmlFor={`ex-notes-${exercise.id}`}>Notas</Label>
                     <Input
