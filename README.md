@@ -92,6 +92,13 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 - **Exportación a CSV**: 🔄 Pendiente - Permitir la descarga de rutinas y el historial de progreso
 - **Backup y Restauración**: 🔄 Pendiente - Sistema de respaldo completo de datos de usuario
 
+### Fase 3.5: Mejoras de UX y Funcionalidad Avanzada (🔄 **Pendiente**)
+
+- **Sistema de Semanas**: 🔄 Pendiente - Selector de semana actual para progresión personalizada
+- **Memoria de Pesos**: 🔄 Pendiente - Mostrar pesos de la semana anterior al iniciar entrenamientos (cuando no es semana 1)
+- **Edición de Nombres**: 🔄 Pendiente - Permitir editar nombres de rutinas haciendo click directo (similar a días)
+- **Responsive Mobile**: 🔄 Pendiente - Mejorar inputs de peso/reps/tiempo en pantallas pequeñas (posible layout en fila)
+
 ### Fase 4: PWA y Despliegue (🔄 **En Progreso**)
 
 - **Progressive Web App**: Hacer que la aplicación sea instalable en dispositivos móviles
