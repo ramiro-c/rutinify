@@ -1,8 +1,20 @@
 {
   "name": "rutinify",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.2.0",
+  "description": "Aplicación web para gestionar y seguir rutinas de entrenamiento de gimnasio",
   "type": "module",
+  "keywords": [
+    "fitness",
+    "gym",
+    "workout",
+    "routine",
+    "training",
+    "react",
+    "typescript"
+  ],
+  "author": "ramiro-c",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
