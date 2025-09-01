@@ -323,9 +323,17 @@ export const RoutineList = ({
       {routines.length === 0 && (
         <div className="text-center mt-8 border-2 border-dashed rounded-lg p-12">
           <p className="text-lg font-semibold">No se encontraron rutinas.</p>
-          <p className="text-muted-foreground">
-            Usa el botón "Añadir Rutina" para crear la primera.
+          <p className="text-muted-foreground mb-4">
+            Usa el botón "Añadir Rutina" para crear la primera o importa una rutina existente.
           </p>
+          <div className="flex justify-center gap-4">
+            <Button variant="default" onClick={() => setIsAddingNewRoutine(true)}>
+              Crear Rutina
+            </Button>
+            <Button variant="outline" onClick={handleImportCSV}>
+              Importar Rutina
+            </Button>
+          </div>
         </div>
       )}
 

@@ -75,7 +75,7 @@ export const Layout = ({ children, onGoHome }: LayoutProps) => {
               </a>
               <div className="w-px h-4 bg-border"></div>
               <a
-                href="https://www.linkedin.com/in/ramiro-cerdá-619983177/"
+                href="https://www.linkedin.com/in/ramiro-cerd%C3%A1-619983177/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

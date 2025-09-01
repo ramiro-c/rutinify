@@ -214,7 +214,7 @@ export const WorkoutView = ({ routineName, day, onBack }: WorkoutViewProps) => {
                       <span className="font-mono text-sm text-muted-foreground">
                         S{setIndex + 1}
                       </span>
-                      <div className="flex-grow grid grid-cols-2 gap-3">
+                      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Input
                           type="number"
                           placeholder="Peso (kg)"
