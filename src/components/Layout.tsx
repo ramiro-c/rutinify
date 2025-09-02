@@ -87,7 +87,14 @@ export const Layout = ({ children, onGoHome }: LayoutProps) => {
             <div className="text-center text-sm text-muted-foreground">
               <p>
                 Desarrollado por{' '}
-                <span className="font-medium">Ramiro Cerdá</span>
+                <a
+                  href="https://ramirocerda.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                >
+                  Ramiro Cerdá
+                </a>
               </p>
               <p>© {new Date().getFullYear()} Rutinify</p>
             </div>
