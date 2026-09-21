@@ -120,7 +120,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                     <Input
                       id={`weight-${set.id}`}
                       type="number"
-                      value={(set as RepsSet).weight}
+                      value={(set as RepsSet).weight ?? ''}
                       onChange={e =>
                         updateSet(set.id, { weight: Number(e.target.value) })
                       }
@@ -169,7 +169,7 @@ export const SetInputs = ({ sets, exerciseType, onChange }: SetInputsProps) => {
                     <Input
                       id={`weight-${set.id}`}
                       type="number"
-                      value={(set as WeightTimeSet).weight}
+                      value={(set as WeightTimeSet).weight ?? ''}
                       onChange={e =>
                         updateSet(set.id, { weight: Number(e.target.value) })
                       }

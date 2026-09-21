@@ -7,7 +7,8 @@ export interface BaseSet {
 
 export interface RepsSet extends BaseSet {
   type: 'reps';
-  weight: number;
+  /** null = plan sin peso para esta semana (celda vacía del Sheet), no 0. */
+  weight: number | null;
   reps: number;
 }
 
@@ -18,7 +19,8 @@ export interface TimeSet extends BaseSet {
 
 export interface WeightTimeSet extends BaseSet {
   type: 'weight-time';
-  weight: number;
+  /** null = plan sin peso para esta semana (celda vacía del Sheet), no 0. */
+  weight: number | null;
   duration: string; // "1:15"
 }
 
@@ -30,8 +32,10 @@ export interface Exercise {
   type: ExerciseType;
   sets: ExerciseSet[];
   tempo: string;
-  supersetCode: string; // e.g., "A1", "B2"
+  supersetCode: string; // e.g., "A1", "B2" — full code, never truncated
   notes?: string;
+  /** Planned weight per week from Semana 1..4 columns (null = empty cell). */
+  weeklyWeights?: (number | null)[];
 }
 
 export interface Superset {
@@ -46,6 +50,7 @@ export interface WorkoutDay {
 }
 
 export interface Routine {
+  id: string;
   name: string;
   days: WorkoutDay[];
 }
@@ -55,7 +60,37 @@ export interface WeekSettings {
   currentWeek: number; // 1-4
 }
 
-// For workout history
+// ── Offline-first sync (BET-2026-001 generation_target) ────────────────
+// Cell-level record mirrored by the Postgres schema in db/schema.sql.
+// PK compuesta: (exercise_id, week, set_index). LWW sobre updated_at.
+
+export interface CellRecord {
+  exercise_id: string;
+  week: number;
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  updated_at: string; // ISO string
+}
+
+export interface NoteRecord {
+  exercise_id: string;
+  week: number;
+  text: string;
+  updated_at: string; // ISO string
+}
+
+export type OutboxOp =
+  | { kind: 'cell'; cell: CellRecord }
+  | { kind: 'note'; note: NoteRecord }
+  | { kind: 'session'; session: WorkoutSession };
+
+export interface OutboxEntry {
+  opId: string;
+  enqueued_at: string; // ISO string
+  op: OutboxOp;
+}
+
 export interface CompletedSet {
   set: number;
   weight: number | null;
@@ -69,9 +104,13 @@ export interface CompletedExercise {
 }
 
 export interface WorkoutSession {
+  id: string;
   date: string; // ISO string
+  /** Clave de join estable con el plan (los nombres se pueden renombrar). */
+  routineId?: string;
   routineName: string;
   dayCompleted: number;
   week: number; // Week number (1-4)
   completedExercises: CompletedExercise[];
+  updated_at: string; // ISO string — LWW version stamp for sync
 }

@@ -30,7 +30,7 @@ Rutinify es una aplicación web diseñada para simplificar la creación, gestió
 ### 📁 **Importación de Rutinas CSV**
 
 - **Importación Completa desde CSV**: Importa rutinas completas desde archivos CSV
-- **Formato Estricto**: Validación automática del formato requerido (basado en el archivo ejemplo)
+- **Formato Estricto**: Validación automática del formato requerido (ver [docs/csv-format.md](docs/csv-format.md))
 - **Vista Previa**: Visualiza ejercicios antes de confirmar la importación
 - **Actualización Automática**: Las rutinas importadas aparecen inmediatamente sin refresh
 - **FAB Mobile**: Botón de acción flotante optimizado para dispositivos móviles
@@ -85,19 +85,19 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 - **Optimización de Focus**: Estilos de focus consistentes y sutiles en toda la aplicación
 - **Sincronización de Estado**: Corrección de problemas de estado para actualizaciones en tiempo real
 
-### Fase 3: Importación y Exportación de Datos (✅ **Completada parcialmente**)
+### Fase 3: Importación y Exportación de Datos (✅ **Completada**)
 
 - **Importación desde CSV**: ✅ Implementado - Sistema completo de importación con validación estricta
 - **Floating Action Button**: ✅ Implementado - FAB móvil para acceso rápido a funciones de importación
-- **Exportación a CSV**: 🔄 Pendiente - Permitir la descarga de rutinas y el historial de progreso
-- **Backup y Restauración**: 🔄 Pendiente - Sistema de respaldo completo de datos de usuario
+- **Exportación a JSON**: ✅ Implementado - Descarga de rutinas, historial, celdas, notas y outbox en un backup único
+- **Backup y Restauración**: ✅ Implementado - El export JSON round-trips (borrar todo e importar restaura la sesión completa)
 
-### Fase 3.5: Mejoras de UX y Funcionalidad Avanzada (🔄 **Pendiente**)
+### Fase 3.5: Mejoras de UX y Funcionalidad Avanzada (✅ **Completada**)
 
-- **Sistema de Semanas**: 🔄 Pendiente - Selector de semana actual para progresión personalizada
-- **Memoria de Pesos**: 🔄 Pendiente - Mostrar pesos de la semana anterior al iniciar entrenamientos (cuando no es semana 1)
-- **Edición de Nombres**: 🔄 Pendiente - Permitir editar nombres de rutinas haciendo click directo (similar a días)
-- **Responsive Mobile**: 🔄 Pendiente - Mejorar inputs de peso/reps/tiempo en pantallas pequeñas (posible layout en fila)
+- **Sistema de Semanas**: ✅ Implementado - Selector de semana actual (1-4) para progresión personalizada
+- **Memoria de Pesos**: ✅ Implementado - La grilla muestra el peso de la semana anterior con indicador S{n} (lookup por id de rutina, estable ante renombres)
+- **Edición de Nombres**: ✅ Implementado - EditableRoutineName/EditableDayTitle permiten editar con click directo
+- **Responsive Mobile**: ✅ Implementado - Grilla mobile-first con inputs directos por celda (deliverable central de la Bet)
 
 ### Fase 4: PWA y Despliegue (🔄 **En Progreso**)
 
@@ -136,7 +136,7 @@ En esta fase inicial, nos centramos en las funcionalidades básicas y en una est
 
 ### 🏗️ **Arquitectura**
 
-- **Hooks Personalizados**: `useRoutines`, `useWorkoutHistory`, `useTheme`
+- **Hooks Personalizados**: `useRoutinesContext`, `useWorkoutHistory`, `useTheme`
 - **Context API**: Gestión de estado global para rutinas y temas con RoutinesProvider
 - **LocalStorage**: Persistencia de datos en el navegador
 - **Component Composition**: Arquitectura de componentes reutilizables
@@ -288,12 +288,18 @@ src/
 │   ├── WorkoutView.tsx # Vista de entrenamiento en vivo
 │   └── ExerciseInputs.tsx # Componentes para entrada de ejercicios
 ├── hooks/              # Hooks personalizados
-│   ├── useRoutines.ts  # Gestión de rutinas
+│   ├── useRoutinesContext.ts # Gestión de rutinas (reemplazo del plan, export/import JSON)
 │   ├── useWorkoutHistory.ts # Historial de entrenamientos
 │   └── useTheme.ts     # Gestión de temas
+├── contexts/           # Estado global (RoutinesContext + provider)
 ├── types.ts            # Definiciones TypeScript
 ├── utils/              # Utilidades y helpers
 └── lib/                # Configuraciones y funciones auxiliares
+    ├── csv.ts          # Parser CSV (formato en docs/csv-format.md)
+    ├── sync.ts         # Outbox offline-first + merge LWW por celda
+    ├── remoteSync.ts   # Transporte pull/merge/push (contrato en db/sync-protocol.md)
+    ├── exportImport.ts # Backup/restore JSON (incluye notas y outbox)
+    └── telemetry.ts    # Contador local del Resolution Signal
 ```
 
 ## 📝 Historial de Versiones

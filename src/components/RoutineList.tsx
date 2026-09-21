@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRoutines } from '../hooks/useRoutinesContext';
 import {
   Card,
@@ -13,6 +13,9 @@ import { Trash2, Pencil, Dumbbell, Plus } from 'lucide-react';
 import { ActionFAB } from './ActionFAB';
 import { ImportCSV } from './ImportCSV';
 import { WeekSelector } from './WeekSelector';
+import { exportAppJSON, importAppJSON } from '../lib/exportImport';
+import { drainOutbox, pullMerge, enqueueOp, loadOutbox, loadNotes, mergeNotes, NOTES_KEY } from '../lib/sync';
+import { getTelemetrySummary, track } from '../lib/telemetry';
 
 interface RoutineListProps {
   onStartWorkout: (routineName: string, day: number) => void;
@@ -202,7 +205,10 @@ export const RoutineList = ({
     updateDayName,
     updateWorkoutDay,
     updateRoutineName,
+    weekSettings,
   } = useRoutines();
+  const importJsonRef = useRef<HTMLInputElement>(null);
+  const telemetry = getTelemetrySummary();
 
   const handleDeleteRoutine = (routineName: string) => {
     if (
@@ -267,6 +273,80 @@ export const RoutineList = ({
     setShowImportCSV(false);
   };
 
+  const handleExportJSON = () => {
+    // Drenar el outbox antes de exportar: las escrituras pendientes se
+    // aplican a sus stores para que el export las incluya (round-trip
+    // del gate de canary etapa 1).
+    drainOutbox();
+    const read = (key: string) => {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : key === 'rutinify-week-settings' ? weekSettings : [];
+      } catch {
+        return [];
+      }
+    };
+    const json = exportAppJSON({
+      routines,
+      history: read('rutinify-history'),
+      cells: read('rutinify-cells'),
+      notes: read(NOTES_KEY),
+      telemetry: read('rutinify-telemetry'),
+      weekSettings,
+      // El outbox se drenó arriba, así que viaja vacío; se incluye igual
+      // para que el import restaure la forma completa del documento.
+      outbox: loadOutbox(),
+    });
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rutinify-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    track('plan_exported', { routines: routines.length });
+  };
+
+  const handleImportJSONFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+    selectedFile.text().then(text => {
+      try {
+        const state = importAppJSON(text);
+        localStorage.setItem('rutinify-routines', JSON.stringify(state.routines));
+        localStorage.setItem('rutinify-history', JSON.stringify(state.history));
+        // Las celdas importadas se fusionan con LWW en vez de
+        // sobrescribir: es el pull/merge al reconectar (las más nuevas
+        // ganan por updated_at, de cualquier lado). Las notas siguen el
+        // mismo camino por clave (exercise_id, week).
+        pullMerge(state.cells);
+        localStorage.setItem(NOTES_KEY, JSON.stringify(mergeNotes(loadNotes(), state.notes)));
+        // El outbox importado se fusiona con el local por opId (sin
+        // duplicar) en vez de perderse: las escrituras offline pendientes
+        // de ambos lados sobreviven al importar-mientras-offline.
+        for (const entry of state.outbox ?? []) {
+          try {
+            enqueueOp(entry.op, localStorage, entry.opId);
+          } catch {
+            // Entrada inválida: se salta sin abortar el resto.
+          }
+        }
+        // Drenar antes de recargar: las ops pendientes (locales +
+        // importadas) se aplican a sus stores con LWW para que el
+        // reload rehidrate el estado ya convergido.
+        drainOutbox();
+        if (state.telemetry) localStorage.setItem('rutinify-telemetry', JSON.stringify(state.telemetry));
+        if (state.weekSettings) {
+          localStorage.setItem('rutinify-week-settings', JSON.stringify(state.weekSettings));
+        }
+        // Recargar para rehidratar todos los hooks desde el estado importado.
+        window.location.reload();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Error al importar el JSON');
+      }
+    });
+  };
+
   // Si está mostrando la importación de CSV, mostrar solo eso
   if (showImportCSV) {
     return (
@@ -283,10 +363,31 @@ export const RoutineList = ({
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Mis Rutinas</h1>
-        <AddRoutineForm
-          isAddingNewRoutine={isAddingNewRoutine}
-          handleAddRoutine={handleAddRoutine}
-        />
+        <div className="flex items-center gap-2">
+          <span
+            className="text-xs text-muted-foreground"
+            title="Sesiones consecutivas registradas enteramente en la app (meta: 4)"
+          >
+            Sesiones en app: {telemetry.consecutiveSessions}/4
+          </span>
+          <Button variant="outline" size="sm" onClick={handleExportJSON}>
+            Exportar JSON
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => importJsonRef.current?.click()}>
+            Importar JSON
+          </Button>
+          <input
+            ref={importJsonRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={handleImportJSONFile}
+          />
+          <AddRoutineForm
+            isAddingNewRoutine={isAddingNewRoutine}
+            handleAddRoutine={handleAddRoutine}
+          />
+        </div>
       </div>
       {isAddingNewRoutine && (
         <div className="flex flex-row">
@@ -310,15 +411,10 @@ export const RoutineList = ({
         </div>
       )}
 
-      {/* Selector de semana - visible siempre para prueba */}
-      <WeekSelector />
-
-      {/* Selector de semana - solo visible si hay rutinas */}
-      {routines.length > 0 && (
-        <div className="hidden">
-          <WeekSelector />
-        </div>
-      )}
+      {/* Selector de semana: una sola instancia, junto al plan.
+          Solo tiene sentido con rutinas cargadas (la semana ordena el
+          plan y las celdas del WorkoutView). */}
+      {routines.length > 0 && <WeekSelector />}
 
       {routines.length === 0 && (
         <div className="text-center mt-8 border-2 border-dashed rounded-lg p-12">

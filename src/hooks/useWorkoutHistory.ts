@@ -1,7 +1,54 @@
 import { useState, useEffect, useCallback } from 'react';
 import { type WorkoutSession } from '../types';
+import { enqueueOp } from '../lib/sync';
 
 const HISTORY_STORAGE_KEY = 'rutinify-history';
+
+function newSessionId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isValidSession(entry: unknown): entry is WorkoutSession {
+  if (!entry || typeof entry !== 'object') return false;
+  const e = entry as unknown as Record<string, unknown>;
+  return (
+    typeof e.date === 'string' &&
+    typeof e.routineName === 'string' &&
+    typeof e.dayCompleted === 'number' &&
+    Array.isArray(e.completedExercises)
+  );
+}
+
+function normalizeSession(entry: Record<string, unknown>): WorkoutSession {
+  const now = new Date().toISOString();
+  return {
+    id: typeof entry.id === 'string' ? entry.id : newSessionId(),
+    date: entry.date as string,
+    // routineId es la clave de join estable; las sesiones viejas (solo
+    // routineName) siguen funcionando por fallback legacy.
+    routineId: typeof entry.routineId === 'string' ? (entry.routineId as string) : undefined,
+    routineName: entry.routineName as string,
+    dayCompleted: entry.dayCompleted as number,
+    week: typeof entry.week === 'number' ? (entry.week as number) : 1,
+    completedExercises: entry.completedExercises as WorkoutSession['completedExercises'],
+    updated_at: typeof entry.updated_at === 'string' ? (entry.updated_at as string) : now,
+  };
+}
+
+/**
+ * Clave de join sesión ↔ plan. El id es estable ante renombres
+ * (EditableRoutineName); el nombre solo se usa como fallback para
+ * sesiones guardadas antes de que existiera routineId.
+ */
+export function sessionMatchesRoutine(
+  session: Pick<WorkoutSession, 'routineId' | 'routineName'>,
+  routineId: string | undefined,
+  routineName: string
+): boolean {
+  if (routineId && session.routineId) return session.routineId === routineId;
+  return session.routineName === routineName;
+}
 
 export const useWorkoutHistory = () => {
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -10,26 +57,29 @@ export const useWorkoutHistory = () => {
     try {
       const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
       if (storedHistory) {
-        const rawHistory = JSON.parse(storedHistory) as (
-          | WorkoutSession
-          | Omit<WorkoutSession, 'week'>
-        )[];
+        const rawHistory: unknown = JSON.parse(storedHistory);
 
-        // Migrar datos antiguos que no tienen propiedad 'week'
-        const migratedHistory: WorkoutSession[] = rawHistory.map(session => ({
-          ...session,
-          week: 'week' in session ? session.week : 1, // Asignar semana 1 por defecto a sesiones antiguas
-        }));
+        if (!Array.isArray(rawHistory)) {
+          console.error('Workout history is not an array — resetting');
+          setHistory([]);
+          return;
+        }
+
+        // Entradas corruptas se descartan una por una sin envenenar el resto.
+        const migratedHistory: WorkoutSession[] = [];
+        for (let i = 0; i < rawHistory.length; i++) {
+          const entry = rawHistory[i];
+          if (isValidSession(entry)) {
+            migratedHistory.push(normalizeSession(entry as unknown as Record<string, unknown>));
+          } else {
+            console.warn(`[history] Skipping corrupt entry at index ${i}:`, entry);
+          }
+        }
 
         setHistory(migratedHistory);
 
-        // Guardar la migración si hubo cambios
-        const needsMigration = rawHistory.some(session => !('week' in session));
-        if (needsMigration) {
-          localStorage.setItem(
-            HISTORY_STORAGE_KEY,
-            JSON.stringify(migratedHistory)
-          );
+        if (migratedHistory.length !== rawHistory.length) {
+          localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(migratedHistory));
         }
       }
     } catch (error) {
@@ -47,12 +97,30 @@ export const useWorkoutHistory = () => {
     }
   };
 
-  const addWorkoutSession = (session: Omit<WorkoutSession, 'date'>) => {
-    const newSession = {
+  // Actualización funcional: dos guardados seguidos (doble tap) no se pisan.
+  const addWorkoutSession = (session: Omit<WorkoutSession, 'date' | 'id' | 'updated_at'>) => {
+    const now = new Date().toISOString();
+    const newSession: WorkoutSession = {
       ...session,
-      date: new Date().toISOString(),
+      id: newSessionId(),
+      date: now,
+      updated_at: now,
     };
-    saveHistory([...history, newSession]);
+    setHistory(prev => {
+      const next = [...prev, newSession];
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+      } catch (error) {
+        console.error('Failed to save workout history to localStorage', error);
+      }
+      return next;
+    });
+    // Encolar para sync offline-first (idempotente por opId = session id).
+    try {
+      enqueueOp({ kind: 'session', session: newSession }, localStorage, `session:${newSession.id}`);
+    } catch {
+      // Outbox best-effort: la sesión ya quedó guardada localmente.
+    }
   };
 
   const getLatestExerciseData = useCallback(
@@ -77,7 +145,8 @@ export const useWorkoutHistory = () => {
       exerciseId: string,
       currentWeek: number,
       routineName: string,
-      dayNumber: number
+      dayNumber: number,
+      routineId?: string
     ) => {
       if (currentWeek <= 1) return null; // No previous week for week 1
 
@@ -88,16 +157,13 @@ export const useWorkoutHistory = () => {
         const session = history[i];
         if (
           session.week === previousWeek &&
-          session.routineName === routineName &&
+          sessionMatchesRoutine(session, routineId, routineName) &&
           session.dayCompleted === dayNumber
         ) {
           const exerciseData = session.completedExercises.find(
             e => e.exerciseId === exerciseId
           );
           if (exerciseData) {
-            console.log(
-              `💾 Found previous week data for exercise "${exerciseId}" from week ${previousWeek}`
-            );
             return exerciseData;
           }
         }
@@ -109,6 +175,7 @@ export const useWorkoutHistory = () => {
 
   return {
     history,
+    saveHistory,
     addWorkoutSession,
     getLatestExerciseData,
     getPreviousWeekExerciseData,
