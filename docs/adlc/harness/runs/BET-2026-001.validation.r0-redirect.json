@@ -1,0 +1,29 @@
+{
+  "bet_id": "BET-2026-001",
+  "suite_tests": {
+    "unitarios": "35 tests verdes en 8 archivos (csv 9, exportImport 8, telemetry 5, remoteSync 4, drainAll 3, sync 3, outbox 2, override 1) + tsc -b --force limpio (exit 0). Cobertura: parseo CSV RFC4180 (BOM, multilinea, lineas de archivo, rechazo de invalidos, weeklyWeights, superseries A1/A2, ids unicos), merge LWW por celda y por nota, outbox idempotente por opId, drain de 3 clases (cell/note/session), round-trip export/import JSON con notas, descarte de entradas corruptas por clase, telemetria (ventana 7 dias consecutivas, abortSession, importTelemetry validado), override sin mutar plan, transporte remoto (sin URL no sale a red, fallo de red deja store intacto, descarta snapshot corrupto).",
+    "extremo_a_extremo": "NO EXISTE: el repo no tiene Playwright ni Cypress (package.json sin dependencias de E2E) y no hay ningun test que levante la app contra un runtime real. remoteSync.test.ts usa fetch mockeado, por lo que es unitario, no E2E. El flujo completo celular->desktop (registrar sesion en un dispositivo, verla en el otro sin export/import manual) no tiene ninguna prueba automatizada que lo ejercite de punta a punta.",
+    "fuzzing": "NO EXISTE automatizado: no hay generador de entradas adversariales. La defensa es solo regex estrictas de string completo en csv.ts (parsePositiveIntOrNull, parseWeekWeight) y WorkoutView.tsx (persistCellFromInputs sin signo, rechaza '80abc'), mas la validacion por entrada en importAppJSON/importTelemetry/sanitizeSnapshot. Ninguna de esas rutas esta sometida a fuzzing o generacion aleatoria de entradas."
+  },
+  "reporte_regresion": {
+    "comportamiento_verificado_intacto": [
+      "CSV: strip BOM, multilinea entrecomillada, numeros de linea de archivo en errores, rechazo de Series/Reps vacios o no enteros positivos, pesos semanales >=0, superserie con codigo completo A1/A2, ids unicos con sufijo ante nombres repetidos, peso vacio -> null (no 0)",
+      "Sync: merge LWW por celda (PK exercise_id|week|set_index) y por nota (exercise_id,week), outbox idempotente por opId, drainOutbox procesa 3 clases y purga ops invalidas sin bloquear, tombstones null/null al vaciar celda",
+      "Export/import JSON: round-trip restaura rutinas, historial, celdas Y notas; descarta entradas corruptas por clase; exports viejos sin campo notes se restauran con notes=[]; outbox se restaura filtrado por isOutboxEntry",
+      "Telemetria: cadena de sesiones consecutivas con ventana de 7 dias, abortSession filtra la sesion activa, importTelemetry valida forma por entrada, eventos app_opened separado de session_started",
+      "Override: applySessionOverride no muta el plan (mapa byId, effective vs planned)",
+      "Transporte remoto (nuevo): sin VITE_SYNC_URL no sale a red y no toca el store; fallo de red devuelve false con store intacto; snapshot remoto descarta celdas/notas corruptas via sanitizeSnapshot",
+      "Persistencia UI: guard anti doble-tap en addWorkoutSession (updates funcionales), guard anti tap-accidental en handleFinishWorkout (minimo 1 celda o 1 nota), persistencia en blur + finish, WeekSelector de instancia unica, telemetrySessionId guard anti StrictMode",
+      "Defectos del round anterior: L45 (transporte de red) verificado corregido con src/lib/remoteSync.ts + db/sync-protocol.md; L46 (notas fuera del export) verificado corregido con campo notes requerido en AppExport, NOTES_KEY en EXPORT_STORAGE_KEYS y restauracion via mergeNotes en import; L47 (README desactualizado) verificado corregido en formato CSV, Sistema de Semanas y referencia a useRoutinesContext.ts"
+    ],
+    "regresiones_detectadas": []
+  },
+  "reporte_cobertura_hipotesis": {
+    "cobertura_tecnica": "ALTA: 35 tests verdes, tsc limpio, y los 3 defectos criticos/medios del round anterior (L45 transporte, L46 notas, L47 README) verificados corregidos en el worktree. La suite cubre el dominio completo declarado en el Generation Target: CSV, merge LWW, outbox, export/import, override, telemetria y el nuevo transporte remoto.",
+    "cobertura_hipotesis": "PARCIAL: 3 de las 5 senales estan instrumentadas localmente y visibles en UI (contador de sesiones consecutivas X/4 en el header, aperturas del Sheet autorreportadas por sesion, tiempo de tipeo por celda medido con focusTimers). La senal central de la Bet - 4 sesiones visibles en desktop sin export/import manual - AHORA tiene camino de codigo (remoteSync.ts + sync-protocol.md + schema.sql) pero NO es medible en produccion: (a) syncOnReconnect solo se dispara en el evento window 'online', sin pull al boot ni push periodico ni visibilitychange, asi que en el flujo normal con ambos dispositivos online nada se sincroniza (defecto nuevo alta); (b) el repo no implementa ningun backend: db/ tiene solo schema.sql y sync-protocol.md, VITE_SYNC_URL no tiene a donde apuntar en produccion (defecto nuevo media).",
+    "brecha_explicita": true
+  },
+  "senales_validation_debt": [
+    "senal_ausente_en_produccion"
+  ]
+}

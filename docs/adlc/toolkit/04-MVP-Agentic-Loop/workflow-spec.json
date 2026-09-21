@@ -1,0 +1,644 @@
+{
+  "spec_version": "1.0.0",
+  "spec_id": "adlc-mvp-agentic-loop",
+  "title": "ADLC MVP Agentic Loop — Especificación Ejecutable de Máquina de Estados",
+  "description": "Especificación declarativa y agnóstica a stack, lenguaje, nube y proveedor de IA de la máquina de estados del loop Intent ⇄ Generate ⇄ Validate ⇄ Govern ⇄ Deploy ⇄ Observe descripta en 01-Fundamentos-y-Manifiesto.md y visualizada como diagrama de estados en 02-Infografias-y-Diagramas.md (infografía 3). Un orquestador — un script, un runner de CI, o un humano ejecutando el loop manualmente con agentes en un IDE — puede leer este documento para saber en qué estado está una Bet, qué agente actúa en ese estado, qué schema de entrada debe cumplirse antes de empezar, qué schema de salida debe producirse para avanzar, y qué condiciones disparan cada transición. Este documento no reemplaza a agent-roles.md ni a las plantillas de 03-Plantillas-Operativas/: las referencia como fuente de verdad de los contratos de cada rol y de cada artefacto, y las traduce a una forma ejecutable.",
+  "schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "expression_language": {
+    "description": "Las claves 'when' de cada transición y de cada regla de monitor son expresiones booleanas de una sola línea sobre el contexto de la Bet en el momento de la evaluación. Un orquestador que implemente este spec necesita soportar únicamente: acceso a campos por ruta con notación de punto (ej. 'gdr.veredicto'), los operadores de comparación '==', '!=', '>=', '<=', '>', '<', el operador de pertenencia 'in' sobre listas literales (ej. \"gdr.veredicto in ['REDIRECT', 'KILL']\"), y los conectores lógicos 'and', 'or', 'not'. No se requiere ningún motor de expresiones de terceros: la gramática cabe en un evaluador de menos de 50 líneas en cualquier lenguaje.",
+    "context_root": "La raíz del contexto evaluado en cada expresión es el objeto de ejecución de la Bet: incluye 'bet' (la entrada de Bet Register vigente), y, según el estado, 'generation_manifest', 'validation_report', 'gdr', 'telemetry', 'observe_decision' con la forma que describen los output_schema de los estados que los producen."
+  },
+  "terminology": {
+    "Intent": "Fase donde una hipótesis se formula como entrada de Bet Register, con objetivo de aprendizaje y señal de resolución definidos antes de generar nada. Ver 01-Fundamentos-y-Manifiesto.md, sección 3.1.",
+    "Generate": "Fase donde se produce la superficie completa de artefactos que la Bet requiere, en paralelo entre código, tests, documentación, schema/migraciones y configuración de despliegue. Ver 01-Fundamentos-y-Manifiesto.md, sección 3.2.",
+    "Validate": "Fase que corre concurrente a Generate, no después, intentando falsificar la hipótesis y detectar bordes y regresiones antes de que la salida llegue a un humano. Ver 01-Fundamentos-y-Manifiesto.md, sección 3.3.",
+    "Govern": "Fase de decisión humana de alineación: si la salida generada y validada sirve a la intención declarada, dado el contexto fuera del repositorio y el apetito de riesgo real. Ver governance-rubric.md.",
+    "Deploy": "Fase de orquestación agenciada del release dentro del Risk Envelope que un GDR con veredicto ADVANCE autorizó, sin requerir aprobación humana adicional por etapa. Ver 01-Fundamentos-y-Manifiesto.md, sección 3.5.",
+    "Observe": "Fase continua de captura de señal real de uso, sistema y mercado, que resuelve la Bet o genera hipótesis nuevas para el próximo ciclo de Intent. Ver 01-Fundamentos-y-Manifiesto.md, sección 3.6.",
+    "Bet Register": "Portafolio de todas las Bets activas de un equipo, donde cada entrada sigue el contrato de ocho componentes de bet-register-template.md.",
+    "Validation Debt": "Apuestas prototipadas o desplegadas pero nunca validadas contra señal real, clasificadas según los cuatro criterios de validation-debt-tracker.md.",
+    "Risk Envelope": "Los límites — blast radius, etapas de canary, triggers de rollback automático — que un GDR con veredicto ADVANCE define una sola vez para que Deploy orqueste sin aprobación humana repetida."
+  },
+  "roles": {
+    "architect": {
+      "name": "Architect / Intent Enframing Agent",
+      "source": "agent-roles.md, sección 1",
+      "acts_in_states": ["hypothesis_draft", "redirect"]
+    },
+    "generator": {
+      "name": "Generator Agent",
+      "source": "agent-roles.md, sección 2",
+      "acts_in_states": ["parallel_gen_val"]
+    },
+    "validator": {
+      "name": "Validator Agent (Adversarial & Continuous)",
+      "source": "agent-roles.md, sección 3",
+      "acts_in_states": ["parallel_gen_val"]
+    },
+    "human_governor_interface": {
+      "name": "Human Governor Interface",
+      "source": "agent-roles.md, sección 4",
+      "acts_in_states": ["govern_gate"]
+    },
+    "deploy_observe_agent": {
+      "name": "Deploy & Observe Agent",
+      "source": "agent-roles.md, sección 5",
+      "acts_in_states": ["canary_deploy", "continuous_observe"]
+    }
+  },
+  "artifacts": {
+    "bet_register": "../03-Plantillas-Operativas/bet-register-template.md",
+    "governance_rubric": "../03-Plantillas-Operativas/governance-rubric.md",
+    "validation_debt_tracker": "../03-Plantillas-Operativas/validation-debt-tracker.md"
+  },
+  "$defs": {
+    "bet_status": {
+      "type": "string",
+      "enum": ["draft", "active", "governing", "calibrating", "resolved", "killed"]
+    },
+    "resolution_signal_metric": {
+      "type": "object",
+      "required": ["metrica", "baseline", "umbral_exito", "fuente_instrumentacion"],
+      "properties": {
+        "metrica": { "type": "string" },
+        "baseline": { "type": "string" },
+        "umbral_exito": { "type": "string" },
+        "fuente_instrumentacion": { "type": "string" },
+        "piso_minimo_muestra": { "type": ["string", "null"] }
+      }
+    },
+    "canary_stage": {
+      "type": "object",
+      "required": ["etapa", "exposicion", "dwell_time_minimo", "condicion_de_avance"],
+      "properties": {
+        "etapa": { "type": "integer", "minimum": 1 },
+        "exposicion": { "type": "string", "description": "Porcentaje o alcance de esta etapa del canary, ej. '5% del segmento objetivo'." },
+        "dwell_time_minimo": { "type": "string", "description": "Tiempo mínimo de permanencia antes de promover a la siguiente etapa." },
+        "condicion_de_avance": { "type": "string" }
+      }
+    },
+    "rollback_trigger": {
+      "type": "object",
+      "required": ["metrica", "umbral", "comparador", "ventana", "accion"],
+      "properties": {
+        "metrica": { "type": "string" },
+        "umbral": { "type": "number" },
+        "comparador": { "type": "string", "enum": [">", ">=", "<", "<=", "=="] },
+        "ventana": { "type": "string", "description": "Ventana temporal móvil sobre la que se evalúa el umbral, ej. '2 horas'." },
+        "accion": { "type": "string", "enum": ["automatic_rollback"], "description": "En el MVP la única acción soportada por un trigger es la reversión automática; no requiere confirmación humana." }
+      }
+    },
+    "risk_envelope": {
+      "type": "object",
+      "required": ["blast_radius", "etapas_canary", "triggers_rollback"],
+      "properties": {
+        "blast_radius": { "type": "string" },
+        "etapas_canary": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/canary_stage" }
+        },
+        "triggers_rollback": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/rollback_trigger" }
+        }
+      }
+    },
+    "generation_target": {
+      "type": "object",
+      "required": ["codigo_dominio", "tests", "documentacion", "schema_migraciones", "configuracion_despliegue"],
+      "properties": {
+        "codigo_dominio": { "type": "string" },
+        "tests": { "type": "string" },
+        "documentacion": { "type": "string" },
+        "schema_migraciones": { "type": "string" },
+        "configuracion_despliegue": { "type": "string" }
+      }
+    },
+    "bet_register_entry": {
+      "type": "object",
+      "required": [
+        "id", "status", "owner_governor", "created_date", "deadline",
+        "hipotesis", "learning_objective", "generation_target",
+        "resolution_signal", "risk_envelope"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^BET-[0-9]{4}-[0-9]{3}$" },
+        "status": { "$ref": "#/$defs/bet_status" },
+        "owner_governor": { "type": "string", "minLength": 1 },
+        "created_date": { "type": "string", "format": "date" },
+        "deadline": { "type": "string", "format": "date" },
+        "hipotesis": { "type": "string", "minLength": 1 },
+        "learning_objective": { "type": "string", "minLength": 1 },
+        "generation_target": { "$ref": "#/$defs/generation_target" },
+        "resolution_signal": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/resolution_signal_metric" }
+        },
+        "risk_envelope": { "$ref": "#/$defs/risk_envelope" }
+      }
+    },
+    "generation_manifest": {
+      "type": "object",
+      "required": ["bet_id", "artifacts", "decisiones_no_cubiertas"],
+      "properties": {
+        "bet_id": { "type": "string" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["ruta", "proposito", "generation_target_ref"],
+            "properties": {
+              "ruta": { "type": "string" },
+              "proposito": { "type": "string" },
+              "generation_target_ref": {
+                "type": "string",
+                "enum": ["codigo_dominio", "tests", "documentacion", "schema_migraciones", "configuracion_despliegue"]
+              }
+            }
+          }
+        },
+        "decisiones_no_cubiertas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["decision", "alternativa_descartada", "motivo"],
+            "properties": {
+              "decision": { "type": "string" },
+              "alternativa_descartada": { "type": "string" },
+              "motivo": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "validation_debt_signal": {
+      "type": "string",
+      "enum": [
+        "senal_ausente_en_produccion",
+        "resolucion_por_proxy_tecnico",
+        "estancamiento_silencioso",
+        "superficie_fantasma"
+      ],
+      "description": "Corresponde uno a uno con los cuatro criterios de validation-debt-tracker.md, sección 1."
+    },
+    "validation_report": {
+      "type": "object",
+      "required": ["bet_id", "suite_tests", "reporte_regresion", "reporte_cobertura_hipotesis", "senales_validation_debt"],
+      "properties": {
+        "bet_id": { "type": "string" },
+        "suite_tests": {
+          "type": "object",
+          "required": ["unitarios", "extremo_a_extremo", "fuzzing"],
+          "properties": {
+            "unitarios": { "type": "string" },
+            "extremo_a_extremo": { "type": "string" },
+            "fuzzing": { "type": "string" }
+          }
+        },
+        "reporte_regresion": {
+          "type": "object",
+          "required": ["comportamiento_verificado_intacto", "regresiones_detectadas"],
+          "properties": {
+            "comportamiento_verificado_intacto": { "type": "array", "items": { "type": "string" } },
+            "regresiones_detectadas": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["descripcion", "severidad"],
+                "properties": {
+                  "descripcion": { "type": "string" },
+                  "severidad": { "type": "string", "enum": ["baja", "media", "alta", "critica"] }
+                }
+              }
+            }
+          }
+        },
+        "reporte_cobertura_hipotesis": {
+          "type": "object",
+          "required": ["cobertura_tecnica", "cobertura_hipotesis", "brecha_explicita"],
+          "properties": {
+            "cobertura_tecnica": { "type": "string" },
+            "cobertura_hipotesis": { "type": "string" },
+            "brecha_explicita": { "type": "boolean", "description": "true si el reporte declara explícitamente que la cobertura técnica no equivale a cobertura de hipótesis." }
+          }
+        },
+        "senales_validation_debt": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/validation_debt_signal" }
+        }
+      }
+    },
+    "gdr": {
+      "type": "object",
+      "required": ["gdr_id", "bet_id", "governor", "decision_date", "puntuacion", "veredicto", "razonamiento"],
+      "properties": {
+        "gdr_id": { "type": "string" },
+        "bet_id": { "type": "string" },
+        "governor": { "type": "string", "minLength": 1 },
+        "decision_date": { "type": "string", "format": "date" },
+        "puntuacion": {
+          "type": "object",
+          "required": ["alineacion_con_intencion", "contexto_externo", "risk_envelope"],
+          "properties": {
+            "alineacion_con_intencion": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "contexto_externo": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "risk_envelope": { "type": "integer", "minimum": 1, "maximum": 4 }
+          }
+        },
+        "veredicto": { "type": "string", "enum": ["ADVANCE", "REDIRECT", "KILL"] },
+        "razonamiento": { "type": "string", "minLength": 1 }
+      },
+      "description": "Esquema formal del Governance Decision Record. Coincide campo a campo con la plantilla de agent-roles.md, sección 4, y con governance-rubric.md, sección 4. Un veredicto ADVANCE solo es válido si ninguna dimensión de 'puntuacion' vale 1 y las tres valen 3 o 4; REDIRECT aplica cuando al menos una dimensión vale 2 sin que ninguna valga 1; KILL aplica cuando al menos una dimensión vale 1. La validación de esta regla es responsabilidad del orquestador antes de aceptar el GDR como válido para una transición, no del schema JSON en sí."
+    },
+    "telemetry_report": {
+      "type": "object",
+      "required": ["bet_id", "timestamp", "senal_tecnica", "senal_negocio", "muestras_acumuladas"],
+      "properties": {
+        "bet_id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "senal_tecnica": {
+          "type": "object",
+          "properties": {
+            "uptime": { "type": "string" },
+            "latencia": { "type": "string" },
+            "tasa_error": { "type": "string" }
+          }
+        },
+        "senal_negocio": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["metrica", "valor_actual"],
+            "properties": {
+              "metrica": { "type": "string" },
+              "valor_actual": { "type": "string" }
+            }
+          }
+        },
+        "muestras_acumuladas": { "type": "integer", "minimum": 0 },
+        "anomalias_no_anticipadas": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "observe_decision": {
+      "type": "object",
+      "required": ["bet_id", "decidido_por", "fecha", "decision", "justificacion"],
+      "properties": {
+        "bet_id": { "type": "string" },
+        "decidido_por": { "type": "string", "description": "Debe coincidir con owner_governor de la Bet." },
+        "fecha": { "type": "string", "format": "date" },
+        "decision": { "type": "string", "enum": ["resolved", "redirect"] },
+        "justificacion": { "type": "string", "minLength": 1 },
+        "hipotesis_nuevas_propuestas": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Propuestas del Deploy & Observe Agent para el Architect en el próximo ciclo de Intent, si las hay."
+        }
+      }
+    }
+  },
+  "initial_state": "hypothesis_draft",
+  "final_states": ["resolved", "killed"],
+  "states": {
+    "hypothesis_draft": {
+      "phase": "Intent",
+      "bet_register_status": "draft",
+      "type": "task",
+      "description": "El Architect ayuda a un humano a convertir un problema difuso en una entrada de Bet Register completa según los ocho componentes de bet-register-template.md. La Bet no puede avanzar mientras cualquiera de Hipótesis, Learning Objective, Generation Target o Resolution Signal & Telemetría falte o esté sin confirmación humana explícita.",
+      "agent_roles": ["architect"],
+      "human_actions": ["Confirma, corrige o rechaza el borrador del Architect.", "Completa owner_governor, deadline y el Risk Envelope preliminar."],
+      "input_schema": {
+        "type": "object",
+        "required": ["problema_original"],
+        "properties": {
+          "problema_original": { "type": "string", "minLength": 1 },
+          "bet_register_actual": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/bet_register_entry" }
+          },
+          "gdr_redirect_previo": {
+            "anyOf": [{ "$ref": "#/$defs/gdr" }, { "type": "null" }]
+          }
+        }
+      },
+      "output_schema": { "$ref": "#/$defs/bet_register_entry" },
+      "transitions": [
+        {
+          "on": "bet_confirmed_by_human",
+          "to": "parallel_gen_val",
+          "when": "bet.status == 'active'",
+          "description": "El humano confirma el borrador del Architect; la Bet entra formalmente al Bet Register en status 'active' y Generate/Validate empiezan a correr sobre ella."
+        }
+      ]
+    },
+    "parallel_gen_val": {
+      "phase": ["Generate", "Validate"],
+      "bet_register_status": "active",
+      "type": "concurrent",
+      "description": "Generate y Validate corren concurrentes sobre la misma superficie de cambio, no en secuencia. El Generator produce la superficie completa de artefactos que el generation_target describe; el Validator, en paralelo desde el primer artefacto disponible, intenta falsificar la Hipótesis y romper el código. Ninguna de las dos ramas espera a que la otra 'termine': se retroalimentan de forma continua dentro del mismo estado hasta que ambas producen sus postcondiciones completas.",
+      "agent_roles": ["generator", "validator"],
+      "concurrency": {
+        "mode": "parallel",
+        "branches": [
+          {
+            "id": "generate",
+            "agent_role": "generator",
+            "produces": "generation_manifest",
+            "schema": { "$ref": "#/$defs/generation_manifest" },
+            "constraint": "Cero placeholders. Cualquier decisión de diseño no cubierta por generation_target se reporta en decisiones_no_cubiertas, nunca se deja como TODO."
+          },
+          {
+            "id": "validate",
+            "agent_role": "validator",
+            "produces": "validation_report",
+            "schema": { "$ref": "#/$defs/validation_report" },
+            "constraint": "Empieza sobre los primeros artefactos disponibles de 'generate', no espera una entrega 'completa'. Actualiza su reporte de forma incremental."
+          }
+        ],
+        "internal_feedback": {
+          "description": "El Validator reporta fallas puntuales al Generator dentro del mismo estado, sin disparar una transición; el Generator corrige de forma incremental sobre la superficie ya generada. Solo se escala fuera del estado (event 'generation_target_ambiguo') cuando el Validator determina que la superficie completa no responde al generation_target de forma coherente.",
+          "events": ["validator.defect_reported", "generator.incremental_fix_applied"]
+        },
+        "join": {
+          "type": "all",
+          "condition": "generation_manifest.decisiones_no_cubiertas is empty or all reviewed by human, and validation_report.reporte_cobertura_hipotesis.brecha_explicita is set (true or false, nunca ausente)"
+        }
+      },
+      "input_schema": { "$ref": "#/$defs/bet_register_entry" },
+      "output_schema": {
+        "type": "object",
+        "required": ["generation_manifest", "validation_report"],
+        "properties": {
+          "generation_manifest": { "$ref": "#/$defs/generation_manifest" },
+          "validation_report": { "$ref": "#/$defs/validation_report" }
+        }
+      },
+      "transitions": [
+        {
+          "on": "generation_target_ambiguo",
+          "to": "hypothesis_draft",
+          "when": "validation_report.reporte_cobertura_hipotesis.brecha_explicita == true and bet.status == 'active'",
+          "description": "Caso límite explícito de agent-roles.md sección 2: si la superficie completa no responde al generation_target de forma coherente, se escala como ambigüedad de Intent en lugar de parchearse a nivel de código."
+        },
+        {
+          "on": "generation_and_validation_complete",
+          "to": "govern_gate",
+          "when": "generation_manifest != null and validation_report != null",
+          "description": "El Manifiesto de Generación y los tres reportes del Validator (regresión, cobertura de hipótesis, señales de Validation Debt) están completos y referidos a la misma versión de la superficie. La Bet pasa a status 'governing'."
+        }
+      ]
+    },
+    "govern_gate": {
+      "phase": "Govern",
+      "bet_register_status": "governing",
+      "type": "gate",
+      "description": "Punto de bifurcación bloqueante: ningún estado siguiente se activa sin un veredicto formal y explícito del owner_governor humano identificado en la Bet. El Human Governor Interface consolida generation_manifest y validation_report en un paquete legible, sin puntuar por sí mismo ninguna de las tres dimensiones de governance-rubric.md.",
+      "agent_roles": ["human_governor_interface"],
+      "gate": {
+        "kind": "human_judgment",
+        "blocking": true,
+        "actor": "owner_governor",
+        "actor_source": "bet.owner_governor",
+        "required_artifact": "gdr",
+        "verdict_schema": { "$ref": "#/$defs/gdr" },
+        "delegation_boundary": "El agente empaqueta evidencia técnica (cobertura, regresión, cobertura de hipótesis); el humano puntúa las tres dimensiones de governance-rubric.md (alineacion_con_intencion, contexto_externo, risk_envelope) y emite el veredicto. Ningún agente puede rellenar 'puntuacion' o 'veredicto' en lugar del humano.",
+        "verdict_matrix": {
+          "ADVANCE": "Las tres dimensiones de puntuacion valen 3 o 4, y ninguna vale 1.",
+          "REDIRECT": "Al menos una dimensión vale 2, y ninguna vale 1.",
+          "KILL": "Al menos una dimensión vale 1."
+        }
+      },
+      "input_schema": {
+        "type": "object",
+        "required": ["bet", "generation_manifest", "validation_report"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" },
+          "generation_manifest": { "$ref": "#/$defs/generation_manifest" },
+          "validation_report": { "$ref": "#/$defs/validation_report" },
+          "contexto_externo_adjunto": { "type": ["string", "null"] }
+        }
+      },
+      "output_schema": { "$ref": "#/$defs/gdr" },
+      "transitions": [
+        {
+          "on": "gdr_issued",
+          "to": "canary_deploy",
+          "when": "gdr.veredicto == 'ADVANCE'",
+          "description": "La Bet pasa a status 'calibrating'. El Risk Envelope de la Bet queda autorizado tal como está documentado; Deploy inicia el canary sin requerir aprobación humana por etapa."
+        },
+        {
+          "on": "gdr_issued",
+          "to": "redirect",
+          "when": "gdr.veredicto == 'REDIRECT'",
+          "description": "La Bet vuelve a 'Hypothesis Draft', nunca directamente a 'Parallel Gen/Val'. El GDR completo, con el razonamiento específico de qué corregir, se entrega como input al Architect."
+        },
+        {
+          "on": "gdr_issued",
+          "to": "killed",
+          "when": "gdr.veredicto == 'KILL'",
+          "description": "La Bet pasa a status 'killed' de forma definitiva. El aprendizaje se archiva junto al GDR y a la entrada del Bet Register."
+        }
+      ]
+    },
+    "canary_deploy": {
+      "phase": "Deploy",
+      "bet_register_status": "calibrating",
+      "type": "task",
+      "description": "El Deploy & Observe Agent orquesta el release exactamente en las etapas que el Risk Envelope del GDR con veredicto ADVANCE define, sin saltar etapas ni pedir reconfirmación humana en cada una. La superficie desplegada debe coincidir exactamente con la versión que el GDR aprobó.",
+      "agent_roles": ["deploy_observe_agent"],
+      "preconditions": [
+        "Existe un gdr con veredicto == 'ADVANCE' para esta bet_id y esta versión exacta de la superficie generada.",
+        "bet.risk_envelope tiene blast_radius, etapas_canary (al menos una) y triggers_rollback (al menos uno) completos y cuantificables.",
+        "La instrumentación necesaria para capturar bet.resolution_signal está lista antes de exponer el primer punto de tráfico real."
+      ],
+      "input_schema": {
+        "type": "object",
+        "required": ["bet", "gdr"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" },
+          "gdr": { "$ref": "#/$defs/gdr" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["bet_id", "etapa_actual", "historial_etapas"],
+        "properties": {
+          "bet_id": { "type": "string" },
+          "etapa_actual": { "type": "integer", "minimum": 0 },
+          "historial_etapas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["etapa", "timestamp_inicio", "estado"],
+              "properties": {
+                "etapa": { "type": "integer" },
+                "timestamp_inicio": { "type": "string", "format": "date-time" },
+                "estado": { "type": "string", "enum": ["en_curso", "promovida", "revertida"] }
+              }
+            }
+          }
+        }
+      },
+      "transitions": [
+        {
+          "on": "traffic_exposed",
+          "to": "continuous_observe",
+          "when": "etapa_actual >= 1",
+          "description": "Desde el primer punto de tráfico real expuesto en la etapa 1 del canary, la Bet entra en observación continua. Deploy sigue promoviendo etapas subsiguientes dentro del mismo Risk Envelope mientras Observe captura señal, ambos monitoreados por el mismo rollback_monitor definido en la sección 'monitors' de este documento."
+        }
+      ]
+    },
+    "continuous_observe": {
+      "phase": "Observe",
+      "bet_register_status": "calibrating",
+      "type": "continuous",
+      "description": "No depende de que otro modo del loop termine: corre en paralelo a todo lo demás mientras la Bet permanece en 'calibrating'. Captura tanto señal técnica (uptime, latencia, tasa de error) como señal de negocio o usuario definida en bet.resolution_signal, y nunca reporta solo la primera como si fuera suficiente para resolver la Bet.",
+      "agent_roles": ["deploy_observe_agent"],
+      "input_schema": {
+        "type": "object",
+        "required": ["bet"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" }
+        }
+      },
+      "output_schema": { "$ref": "#/$defs/telemetry_report" },
+      "transitions": [
+        {
+          "on": "observe_decision_recorded",
+          "to": "resolved",
+          "when": "observe_decision.decision == 'resolved'",
+          "description": "La señal real acumulada confirma o refuta la Hipótesis con volumen de muestra suficiente contra el piso mínimo definido en resolution_signal, dentro o antes de bet.deadline. El owner_governor registra un observe_decision y la Bet queda cerrada con una respuesta."
+        },
+        {
+          "on": "observe_decision_recorded",
+          "to": "redirect",
+          "when": "observe_decision.decision == 'redirect'",
+          "description": "La señal real, ya en producción, indica que la hipótesis necesita reformularse — con volumen insuficiente al llegar bet.deadline, o con una señal que contradice la hipótesis sin llegar a refutarla de forma concluyente. La Bet vuelve a 'Hypothesis Draft' con el observe_decision como contexto para el Architect."
+        }
+      ]
+    },
+    "redirect": {
+      "phase": "Govern",
+      "bet_register_status": "draft",
+      "type": "transitional",
+      "description": "Estado de tránsito, no de permanencia: cualquier Bet que llega aquí se reformula inmediatamente como una nueva iteración de Hypothesis Draft. Nunca vuelve a 'Parallel Gen/Val' directamente, porque una salida desalineada o una señal insuficiente casi siempre significa que la pregunta estaba mal formulada, no solo que la ejecución estuvo mal hecha.",
+      "agent_roles": ["architect"],
+      "input_schema": {
+        "type": "object",
+        "required": ["bet"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" },
+          "gdr": { "anyOf": [{ "$ref": "#/$defs/gdr" }, { "type": "null" }] },
+          "observe_decision": { "anyOf": [{ "$ref": "#/$defs/observe_decision" }, { "type": "null" }] }
+        }
+      },
+      "output_schema": { "$ref": "#/$defs/bet_register_entry" },
+      "transitions": [
+        {
+          "on": "new_iteration_started",
+          "to": "hypothesis_draft",
+          "when": "bet.status == 'draft'",
+          "description": "El Architect recibe el GDR de REDIRECT o el observe_decision de redirect como contexto adicional para reformular la Hipótesis o el Learning Objective, sin tocar artefactos ya generados."
+        }
+      ]
+    },
+    "killed": {
+      "phase": "Govern",
+      "bet_register_status": "killed",
+      "type": "terminal",
+      "description": "Resolución operativa terminal: la hipótesis queda cerrada y documentada como aprendizaje, sin volver a 'Hypothesis Draft' a través de Redirect. Una Bet bien formulada que se mata con la rúbrica de governance-rubric.md es la rúbrica funcionando como debería, no un fallo del equipo de generación.",
+      "agent_roles": [],
+      "input_schema": {
+        "type": "object",
+        "required": ["bet", "gdr"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" },
+          "gdr": { "$ref": "#/$defs/gdr" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["bet_id", "aprendizaje_archivado", "gdr_ref"],
+        "properties": {
+          "bet_id": { "type": "string" },
+          "aprendizaje_archivado": { "type": "string", "minLength": 1 },
+          "gdr_ref": { "type": "string" }
+        }
+      },
+      "transitions": []
+    },
+    "resolved": {
+      "phase": "Observe",
+      "bet_register_status": "resolved",
+      "type": "terminal",
+      "description": "La señal real confirmó o refutó la hipótesis de forma concluyente. La Bet queda cerrada en el Bet Register con una respuesta, no solo con un artefacto entregado, y cualquier hipótesis nueva derivada de la señal observada se entrega al Architect como entrada de un ciclo de Intent distinto, no como una reapertura de esta misma Bet.",
+      "agent_roles": [],
+      "input_schema": {
+        "type": "object",
+        "required": ["bet", "observe_decision"],
+        "properties": {
+          "bet": { "$ref": "#/$defs/bet_register_entry" },
+          "observe_decision": { "$ref": "#/$defs/observe_decision" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["bet_id", "resultado", "hipotesis_nuevas_para_intent"],
+        "properties": {
+          "bet_id": { "type": "string" },
+          "resultado": { "type": "string", "enum": ["confirmada", "refutada"] },
+          "hipotesis_nuevas_para_intent": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "transitions": []
+    }
+  },
+  "monitors": [
+    {
+      "id": "rollback_monitor",
+      "description": "Proceso de fondo automático, sin gate humano, que evalúa continuamente los triggers_rollback del Risk Envelope de la Bet contra la telemetría producida por continuous_observe. Implementa el requisito de agent-roles.md sección 5: 'el rollback tiene que ejecutarse sin esperar a que un humano lo note'. No decide si la Bet avanza, se redirige o se mata — esa decisión sigue siendo exclusiva del owner_governor en govern_gate.",
+      "active_during_states": ["canary_deploy", "continuous_observe"],
+      "watches": "telemetry_report emitido por continuous_observe",
+      "evaluates": "bet.risk_envelope.triggers_rollback, uno por uno, en cada telemetry_report nuevo",
+      "on_trigger": {
+        "action": "automatic_rollback",
+        "effect": "La etapa de canary activa se revierte a 0% de exposición de inmediato, sin intervención humana.",
+        "emits_event": "rollback.triggered",
+        "notifies": ["human_governor_interface", "deploy_observe_agent"],
+        "payload_schema": {
+          "type": "object",
+          "required": ["bet_id", "trigger_disparado", "valor_observado", "timestamp", "estado_post_reversion"],
+          "properties": {
+            "bet_id": { "type": "string" },
+            "trigger_disparado": { "$ref": "#/$defs/rollback_trigger" },
+            "valor_observado": { "type": "number" },
+            "timestamp": { "type": "string", "format": "date-time" },
+            "estado_post_reversion": { "type": "string" }
+          }
+        },
+        "resume_condition": "No se reintenta la promoción a la siguiente etapa del canary sin un gdr nuevo emitido desde govern_gate. El monitor no dispara esa transición por sí mismo: solo revierte y notifica; el humano decide, vía un nuevo paso por govern_gate, si ajusta el Risk Envelope o mata la Bet."
+      },
+      "near_threshold_alert": {
+        "description": "Caso límite explícito de agent-roles.md sección 5: cuando una métrica se acerca a un umbral sin cruzarlo, el monitor emite una alerta temprana sin ejecutar rollback preventivo y sin recalibrar el umbral por su cuenta.",
+        "condition": "valor_observado dentro del 20% del umbral del trigger, sin cruzarlo",
+        "emits_event": "rollback.near_threshold",
+        "notifies": ["human_governor_interface"]
+      }
+    }
+  ],
+  "global_rules": {
+    "concurrency_policy": "El único punto de concurrencia formal de este MVP es parallel_gen_val: Generate y Validate son dos ramas del mismo estado, no dos estados secuenciales, y ambas leen y escriben sobre la misma superficie de cambio en tiempo real. Un orquestador que ejecute las dos ramas en serie — primero todo Generate, después todo Validate — está violando este spec aunque los nombres de los pasos coincidan.",
+    "human_gate_policy": "govern_gate es el único estado de tipo 'gate' con gate.kind == 'human_judgment' y gate.blocking == true en todo el documento. Ningún agente puede emitir un gdr válido: el campo 'puntuacion' y el campo 'veredicto' del $defs/gdr solo son válidos si provienen literalmente del owner_governor identificado en bet.owner_governor.",
+    "rollback_policy": "Los triggers_rollback del Risk Envelope se ejecutan automáticamente vía rollback_monitor sin gate humano, porque governance-rubric.md y bet-register-template.md ya definen ese automatismo como parte del contrato del Risk Envelope aprobado en el GDR de ADVANCE. Lo que sí requiere un gate humano nuevo es cualquier cambio al Risk Envelope mismo o cualquier reintento de promoción de etapa después de un rollback.",
+    "validation_debt_surface": "Cualquier senales_validation_debt no vacío en validation_report, o cualquier telemetry_report con muestras_acumuladas por debajo del piso mínimo de una métrica cerca de bet.deadline, debe reflejarse en el Semáforo de Riesgo de validation-debt-tracker.md por el equipo que opera este workflow — este spec no reemplaza esa auditoría periódica, la alimenta con datos estructurados."
+  }
+}

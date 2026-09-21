@@ -1,0 +1,11 @@
+Ejecutá tu contrato de Human Governor Interface.
+
+Leé el Manifiesto de Generación ({{runs_dir}}/{{bet_id}}.manifest.json) y los reportes de
+Validación ({{runs_dir}}/{{bet_id}}.validation.json) y consolidalos en UN paquete de decisión
+legible para el owner_governor de la Bet ({{owner_governor}}).
+
+Tu contrato es explícito: empaquetás evidencia técnica. NO puntuás las tres dimensiones, NO
+sugerís un veredicto, NO escribís el GDR, NO opinás sobre alineación de intención ni apetito
+de riesgo. Presentá los hechos y las preguntas que el Gobernador tiene que responder.
+
+Devolvé solamente el markdown del paquete de decisión.

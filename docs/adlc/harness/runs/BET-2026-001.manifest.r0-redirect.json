@@ -1,0 +1,287 @@
+{
+  "bet_id": "BET-2026-001",
+  "artifacts": [
+    {
+      "ruta": "src/lib/csv.ts",
+      "proposito": "Parser CSV RFC 4180 del Sheet: strip BOM, multilínea entrecomillada, números de línea de archivo, validación numérica estricta de Series/Reps, lectura de pesos Semana 1-4, código de superserie A1/A2 completo, ids de ejercicio únicos con sufijo ante nombres repetidos y peso vacío que queda null (nunca 0 inventado)",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/types.ts",
+      "proposito": "Tipos del dominio: RepsSet.weight y WeightTimeSet.weight son number|null para que la ausencia de peso planificado sea explícita y no un 0 inventado",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/components/ImportCSV.tsx",
+      "proposito": "Import del plan por file-picker y por paste de texto (reemplaza, no mergea); delega parseo/validación en src/lib/csv.ts y muestra errores con línea de archivo real",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/lib/sync.ts",
+      "proposito": "Merge por celda last-write-wins sobre updated_at con UPSERT condicional; outbox idempotente que drena las tres clases de ops (cell, note, session) a sus stores con LWW; helpers saveCellLocal/saveNoteLocal y pull/merge al reconectar; exporta isValidCell/isValidNote para validar el snapshot remoto y el backup",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/lib/remoteSync.ts",
+      "proposito": "Transporte celular ↔ desktop: pull del snapshot remoto, merge LWW con el store local, persistencia y push best-effort del estado convergido (contrato en db/sync-protocol.md); sin VITE_SYNC_URL no sale a la red y la app sigue 100 % local con export/import JSON; un fallo de red devuelve false con el store local intacto",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/lib/override.ts",
+      "proposito": "Override de ejercicio por sesión: la sesión puede desviarse del plan sin mutarlo; lee el peso planificado como number|null",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/lib/exportImport.ts",
+      "proposito": "Export/import JSON con validación de forma entrada por entrada (routines, history, cells, notes y payload del outbox por clase: cell/note/session) que hace ejecutable el round-trip del gate de canary etapa 1 y el plan de reversión a localStorage puro; incluye rutinify-notes en el documento y en EXPORT_STORAGE_KEYS para que el backup restaure la sesión completa",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/lib/telemetry.ts",
+      "proposito": "Instrumentación local del Resolution Signal: contador de sesiones enteras en app con ventana de contigüidad temporal de 7 días, abortSession para Cancel sin envenenar la cadena, importTelemetry con validación de forma por entrada, medición de tiempo por celda y eventos app_opened/session_started separados",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/hooks/useWorkoutHistory.ts",
+      "proposito": "Historial tolerante a entradas corruptas (descarta solo la mala), updates funcionales anti doble-tap y escrituras con updated_at/outbox de sesión, sin logs de debug",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/contexts/RoutinesContext.tsx",
+      "proposito": "Contexto del plan con path de reemplazo y botones de export/import JSON en UI; weekSettings validado en forma y rango 1-4 al cargar (repara a semana 1) y al actualizar (ignora valores fuera de rango)",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/components/WorkoutView.tsx",
+      "proposito": "Grilla mobile-first que muestra el peso planificado de la semana activa sin prellenar, persiste cada celda al store cell-level con set_index real de grilla (tombstone null/null al vaciar, parseo numérico estricto sin signo, 0 renderizado como 0), lee el set previo por número de set (no por posición), aborta la sesión vacía en vez de completarla, persiste notas en blur además de al finalizar, Cancel aborta la sesión telemétrica y StrictMode crea una sola sesión",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/components/RoutineList.tsx",
+      "proposito": "UI de reemplazo del plan y export/import JSON visibles para el gate de canary; WeekSelector único junto al plan; export incluye notas y outbox, import fusiona celdas con pull/merge LWW y notas con mergeNotes por (exercise_id, week), fusiona el outbox importado por opId y drena antes de recargar",
+      "generation_target_ref": "codigo_dominio"
+    },
+    {
+      "ruta": "src/main.tsx",
+      "proposito": "Bootstrap con persistencia de storage, telemetría local y drenaje del outbox al arrancar y al reconectar (entry point en producción del ciclo de sync); al recuperar red intenta además syncOnReconnect best-effort contra el backend cuando VITE_SYNC_URL está configurado",
+      "generation_target_ref": "configuracion_despliegue"
+    },
+    {
+      "ruta": ".env.example",
+      "proposito": "VITE_SYNC_URL (base del backend de sync, contrato en db/sync-protocol.md) y VITE_API_TOKEN (Bearer) en variables de entorno sin feature flags (blast radius 1 usuario); sin URL la app funciona 100 % local",
+      "generation_target_ref": "configuracion_despliegue"
+    },
+    {
+      "ruta": "db/schema.sql",
+      "proposito": "Postgres cells(exercise_id, week, set_index, weight, reps, updated_at) con PK compuesta, notes y plans; merge como UPSERT con WHERE excluded.updated_at > cells.updated_at",
+      "generation_target_ref": "schema_migraciones"
+    },
+    {
+      "ruta": "db/sync-protocol.md",
+      "proposito": "Contrato HTTP del backend de sync (GET/POST /sync con Bearer, semántica LWW idéntica al UPSERT de schema.sql) y ciclo del cliente: outbox offline, drain al arrancar, pull/merge/push al reconectar, local intacto sin red ni backend",
+      "generation_target_ref": "documentacion"
+    },
+    {
+      "ruta": "docs/csv-format.md",
+      "proposito": "README con el formato de CSV aceptado del Sheet",
+      "generation_target_ref": "documentacion"
+    },
+    {
+      "ruta": "docs/como-reemplazo-el-plan.md",
+      "proposito": "Guía de una página de cómo reemplazo el plan para uso propio futuro",
+      "generation_target_ref": "documentacion"
+    },
+    {
+      "ruta": "README.md",
+      "proposito": "README con link al formato CSV aceptado (docs/csv-format.md), Fase 3 marcada completada (export/import JSON con backup y restauración), Sistema de Semanas marcado implementado y árbol de proyecto actualizado (RoutinesContext, lib/csv/sync/remoteSync/exportImport/telemetry, sin referencias al archivo ejemplo eliminado ni a useRoutines.ts)",
+      "generation_target_ref": "documentacion"
+    },
+    {
+      "ruta": "src/lib/__tests__/csv.test.ts",
+      "proposito": "Tests de parseo CSV: columnas irregulares, celdas vacías, notas con comas/multilínea, BOM, pesos semanales, peso vacío que queda null e ids únicos ante ejercicios repetidos",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/sync.test.ts",
+      "proposito": "Tests de merge por celda: escritura local offline más escritura remota posterior gana la más nueva",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/outbox.test.ts",
+      "proposito": "Tests de idempotencia del outbox: un reintento no duplica",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/drainAll.test.ts",
+      "proposito": "Tests de drenaje completo del outbox: ops session aplicadas al historial sin duplicar, ops note con LWW y cola mixta cell+note+session vaciada por completo",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/remoteSync.test.ts",
+      "proposito": "Tests del transporte: sin VITE_SYNC_URL no sale a la red ni toca el store, pull/merge LWW converge en ambas direcciones con push Bearer del estado fusionado, fallo de red deja el local intacto y entradas remotas corruptas se descartan",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/exportImport.test.ts",
+      "proposito": "Tests de round-trip export/import JSON (incluidas notas), descarte de celdas y notas corruptas, exports viejos sin notes que restauran vacío, restauración filtrada del outbox y rechazo de ops sin payload por clase",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/override.test.ts",
+      "proposito": "Tests de override de sesión que no toca el plan",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "src/lib/__tests__/telemetry.test.ts",
+      "proposito": "Tests de computeConsecutive con ventana de 7 días (brecha de 6 semanas no cuenta), importTelemetry que rechaza documento sin sessions y abortSession que elimina la sesión activa",
+      "generation_target_ref": "tests"
+    },
+    {
+      "ruta": "package.json",
+      "proposito": "Runner vitest y script test que hacen ejecutables las categorías de tests del target (35 tests en 8 archivos, todos verdes; tsc limpio)",
+      "generation_target_ref": "tests"
+    }
+  ],
+  "decisiones_no_cubiertas": [
+    {
+      "decision": "Superserie se modela con código completo (A1, A2) en vez de letra base; el dominio no declara si A1/A2 son grupos distintos o variantes del mismo grupo",
+      "alternativa_descartada": "Agrupar por charAt(0) en un único superset A",
+      "motivo": "Agrupar pierde la distinción del plan del Sheet y fusiona ejercicios distintos en silencio; el código completo es reversible y conservador"
+    },
+    {
+      "decision": "Fila CSV con Series o Reps inválidos o vacíos se rechaza con error en vez de aplicar defaults 3x10 o importar 0 sets",
+      "alternativa_descartada": "Defaults silenciosos parseInt||3 / parseInt||10 o importar con 0 sets",
+      "motivo": "Los defaults silenciosos pierden kilos/sets del plan sin señal; rechazar con línea exacta es reversible y no inventa datos"
+    },
+    {
+      "decision": "Historial corrupto se recupera por entrada (descarta solo la mala) en vez de descartar todo el array o abortar",
+      "alternativa_descartada": "Descartar el historial completo a [] ante un JSON.parse fallido",
+      "motivo": "Una sola entrada mala no debe envenenar todas las sesiones guardadas; el descarte parcial preserva el resto y es auditable"
+    },
+    {
+      "decision": "Telemetría local y visible en la app en vez de eventos cloud",
+      "alternativa_descartada": "track() remoto a un servicio de analítica",
+      "motivo": "La Bet exige señal local visible al usuario y declara que la v1 murió por instrumentación cloud nula no-accionable; local evita backend, OAuth y datos de terceros fuera de alcance"
+    },
+    {
+      "decision": "drainOutbox aplica ops session como upsert por id en rutinify-history con LWW sobre updated_at, en vez de descartarlas o exigir un backend",
+      "alternativa_descartada": "Descartar silenciosamente las ops no-cell del outbox",
+      "motivo": "Descartar en silencio hace crecer la cola sin drenar y pierde sesiones; el upsert local con LWW es reversible y mantiene un único ciclo de sync para las tres clases de ops"
+    },
+    {
+      "decision": "WorkoutView persiste la celda en vivo al salir de cada campo y de forma garantizada al finalizar la sesión",
+      "alternativa_descartada": "Persistir celdas solo al finalizar el entrenamiento",
+      "motivo": "Solo-al-finalizar pierde lo ingresado si la app se cierra a mitad de sesión en el gimnasio; el doble path (blur + finish) es idempotente por PK y no duplica"
+    },
+    {
+      "decision": "WeekSelector con instancia única visible solo cuando hay rutinas cargadas",
+      "alternativa_descartada": "Selector siempre visible incluso sin plan, o segunda instancia oculta condicional",
+      "motivo": "La semana ordena el plan y las celdas; sin rutinas no tiene efecto y dos instancias divergen; una sola instancia condicional es la posición coherente"
+    },
+    {
+      "decision": "Import JSON fusiona celdas con pull/merge LWW en vez de sobrescribir el store",
+      "alternativa_descartada": "Sobrescribir rutinify-cells con el contenido importado",
+      "motivo": "Sobrescribir pierde escrituras offline más nuevas que el archivo; el merge LWW preserva ambos lados y le da entry point en producción al pull/merge"
+    },
+    {
+      "decision": "El peso planificado de la semana activa se muestra (etiqueta + placeholder) sin prellenar los inputs",
+      "alternativa_descartada": "Prellenar los inputs con el peso del plan",
+      "motivo": "Prellenar enmascara el valor medido real y contamina la telemetría de tiempo por celda; mostrar sin prellenar es reversible y no inventa datos"
+    },
+    {
+      "decision": "Se eliminó src/hooks/useRoutines.ts (duplicado muerto, cero imports) en vez de mantenerlo o reexportarlo",
+      "alternativa_descartada": "Conservar el archivo como re-export del contexto",
+      "motivo": "Superficie declarada que no participa del sistema es deuda de validación; RoutinesContext es la única implementación viva"
+    },
+    {
+      "decision": "La apertura de app emite 'app_opened', evento distinto de 'session_started' que solo emite WorkoutView",
+      "alternativa_descartada": "Mantener session_started en el boot y en el mount",
+      "motivo": "El doble disparo inflaba la señal de éxito de sesiones consecutivas con meras aperturas sin entrenar"
+    },
+    {
+      "decision": "CompletedSet.set conserva el set_index real de la grilla (base 0, igual que la PK de CellRecord) en vez de renumerar 1-based",
+      "alternativa_descartada": "Renumerar los sets filtrados a secuencia continua 1-based",
+      "motivo": "Renumerar desalineaba las celdas guardadas del set real del plan cuando el usuario saltea un set; el índice de grilla es la clave de verdad"
+    },
+    {
+      "decision": "Import JSON fusiona el outbox importado por opId y drena antes de recargar, en vez de ignorarlo",
+      "alternativa_descartada": "Sobrescribir el estado e ignorar el outbox del archivo",
+      "motivo": "Ignorarlo pierde escrituras offline pendientes en el flujo importar-mientras-offline; el merge por opId es idempotente y converge con LWW"
+    },
+    {
+      "decision": "Cancelar aborta (elimina) la sesión telemétrica activa en vez de dejarla incompleta",
+      "alternativa_descartada": "Dejar la sesión con completed:false al desmontar por Cancel",
+      "motivo": "La sesión huérfana cortaba la cadena de consecutivas en computeConsecutive; un Cancel es 'no hubo entrenamiento', no una racha rota, y eliminarla es reversible"
+    },
+    {
+      "decision": "Vaciar una celda persiste tombstone null/null con updated_at nuevo en vez de no persistir",
+      "alternativa_descartada": "Retornar sin persistir cuando ambos campos quedan vacíos",
+      "motivo": "No persistir dejaba el CellRecord viejo como fantasma que sobrevivía al export y al sync; el tombstone propaga el vaciado por LWW y converge entre dispositivos"
+    },
+    {
+      "decision": "Consecutivas exige contigüidad temporal de 7 días entre sesiones (por startedAt) en vez de contar trailing completed sin ventana",
+      "alternativa_descartada": "Contar trailing completed sin verificar distancia temporal",
+      "motivo": "Sin ventana, sesiones separadas por semanas contaban como consecutivas y la señal no era falsable; 7 días refleja la cadencia semanal de entrenamiento y es el valor más conservador"
+    },
+    {
+      "decision": "Parseo numérico estricto de string completo (regex) en vez de parseFloat/parseInt con prefijo",
+      "alternativa_descartada": "Aceptar el prefijo numérico que parseFloat extrae ('80abc' -> 80)",
+      "motivo": "Aceptar prefijos persiste valores que el usuario no escribió; rechazar a null filtra el set inválido en vez de inventar un dato de entrenamiento"
+    },
+    {
+      "decision": "Display de set previo usa ?? (nullish) en vez de || (falsy) para peso y reps",
+      "alternativa_descartada": "Mantener previousSet.weight || 'PC'",
+      "motivo": "0 es peso corporal legítimo y es falsy; con || se mostraba '-- kg' y se ocultaba un dato real medido"
+    },
+    {
+      "decision": "isOutboxEntry valida el payload por clase (cell/note/session con su forma completa) en vez de solo kind",
+      "alternativa_descartada": "Aceptar cualquier op con kind válido y dejar que drainOutbox la purgue",
+      "motivo": "Encolar ops sin payload las hacía viajar al store para ser descartadas en silencio; rechazarlas en el import evita encolar basura que nunca drena"
+    },
+    {
+      "decision": "importTelemetry valida forma por entrada (filtra sesiones corruptas, exige array de sessions) en vez de castear el JSON",
+      "alternativa_descartada": "JSON.parse con cast directo a TelemetryState",
+      "motivo": "El cast crasheaba con TypeError ante documentos sin sessions; validar convierte corrupción en error accionable o descarte parcial sin tumbar la app"
+    },
+    {
+      "decision": "ExerciseLogger busca el set previo por número de set (find s.set === setIndex) en vez de por posición de array",
+      "alternativa_descartada": "Indexar previousData.sets[setIndex] por posición",
+      "motivo": "Los sets guardados son ralos cuando se saltea un set; la posición mostraba el dato del set equivocado al lado del input"
+    },
+    {
+      "decision": "Finalizar sin celdas ni notas aborta la sesión telemétrica en vez de registrarla como completada; mínimo: 1 celda o 1 nota",
+      "alternativa_descartada": "Registrar la sesión vacía como completada",
+      "motivo": "Un tap accidental contaría como sesión registrada enteramente en la app e inflaría la señal primaria de éxito; abortar la trata como 'no hubo entrenamiento', igual que Cancel"
+    },
+    {
+      "decision": "Peso semanal vacío queda null en weeklyWeights y en los sets del plan (RepsSet.weight y WeightTimeSet.weight nullables) en vez de 0",
+      "alternativa_descartada": "baseWeight ?? 0",
+      "motivo": "0 inventaba 'Plan 0 kg' en la UI y contaminaba el plannedWeight del override; null es ausencia explícita y la UI no muestra etiqueta ni placeholder de plan"
+    },
+    {
+      "decision": "weekSettings se valida en forma y rango 1-4 al cargar (repara a semana 1 y reescribe el storage) y updateCurrentWeek ignora valores fuera de rango",
+      "alternativa_descartada": "Aceptar el JSON de weekSettings tal cual",
+      "motivo": "week=99 generaba celdas que el CHECK week 1-4 de Postgres rechazan en el sync; el patrón de recuperación por entrada ya existía para routines/history/telemetry pero no para weekSettings"
+    },
+    {
+      "decision": "Las notas se persisten en blur (saveNoteLocal) además de al finalizar, en vez de solo al finalizar",
+      "alternativa_descartada": "Persistir notas únicamente en handleFinishWorkout",
+      "motivo": "Solo-al-finalizar perdía las notas si la app se cerraba a mitad de sesión, el escenario exacto para el que existe la persistencia blur de celdas; el doble path es idempotente por PK exercise_id+week"
+    },
+    {
+      "decision": "Pesos negativos se rechazan en parseWeightInput y en la persistencia por blur, en vez de aceptarse con signo",
+      "alternativa_descartada": "Aceptar el signo menos en el regex de peso",
+      "motivo": "El parser CSV (parseWeekWeight, n>=0) ya rechaza negativos; aceptar -5 en la grilla era inconsistente entre los dos caminos de entrada y persistía un peso imposible que viajaba al sync"
+    },
+    {
+      "decision": "El transporte remoto (remoteSync.ts) implementa pull/merge/push LWW contra GET/POST /sync con Bearer, activo solo con VITE_SYNC_URL; sin backend la app sigue 100 % local y el flujo celular ↔ desktop es el export/import JSON",
+      "alternativa_descartada": "Desplegar un backend real en esta iteración o dejar el sync automático como superficie fantasma sin transporte",
+      "motivo": "El generation_target exige outbox + pull/merge al reconectar pero el despliegue del backend es decisión de Deploy & Observe tras un GDR ADVANCE, no de Generate; el cliente con fallback local honesto y contrato documentado (db/sync-protocol.md) es reversible y testeable, mientras que un endpoint sin servidor o un deploy unilateral exceden el Risk Envelope"
+    },
+    {
+      "decision": "El backup JSON incluye notes (rutinify-notes en AppExport y EXPORT_STORAGE_KEYS) y el import las fusiona con mergeNotes por (exercise_id, week) en vez de ignorarlas o sobrescribirlas",
+      "alternativa_descartada": "Exportar solo routines/history/cells y restaurar notas por sobrescritura",
+      "motivo": "Las notas son deliverable explícito de la Bet y el gate de canary etapa 1 exige que el backup restaure la sesión completa; sobrescribir perdería notas locales más nuevas, igual que ya se resolvió para celdas y outbox"
+    }
+  ]
+}

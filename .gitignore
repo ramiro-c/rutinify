@@ -16,6 +16,9 @@ dist-ssr
 bun.lockb
 yarn.lock
 package-lock.json
+# Excepción: el harness ADLC corre en CI, así que su lockfile sí se versiona
+# (sin él, `npm ci` falla con EUSAGE en un checkout limpio).
+!docs/adlc/harness/package-lock.json
 
 # Development and documentation files
 ideas.txt
@@ -32,4 +35,7 @@ data/
 *.njsproj
 *.sln
 *.sw?
-.github
+
+# cachés de herramientas de indexado
+.atl/
+.cachebro/

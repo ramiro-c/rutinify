@@ -1,0 +1,16 @@
+Ejecutá tu contrato de Deploy & Observe Agent para la etapa de canary indicada.
+
+Leé el GDR con veredicto ADVANCE en {{runs_dir}}/{{bet_id}}.gdr.json y el Risk Envelope de la
+Bet. Orquestá el release EXACTAMENTE en las etapas definidas, sin saltar ninguna y sin pedir
+aprobación humana nueva por etapa. Verificá antes de empezar que la instrumentación necesaria
+para capturar el resolution_signal está lista.
+
+Si no podés ejecutar el despliegue real (por ejemplo, falta una credencial o un paso manual
+del humano), NO declares que se desplegó: registrá el bloqueo concreto en `estado` y listá el
+paso exacto que falta.
+
+PROTOCOLO DE SALIDA (obligatorio): devolvé EXCLUSIVAMENTE un objeto JSON, sin texto antes ni
+después, sin fences de markdown, que valide contra el `output_schema` del estado
+`canary_deploy` de docs/adlc/toolkit/04-MVP-Agentic-Loop/workflow-spec.json.
+
+Devolvé el objeto JSON y nada más.

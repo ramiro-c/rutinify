@@ -1,0 +1,97 @@
+{
+  "id": "BET-2026-001",
+  "status": "draft",
+  "owner_governor": "Ramiro Cerdá",
+  "created_date": "2026-09-16",
+  "deadline": "2026-10-07",
+  "hipotesis": "Creemos que completar el camino de sincronización remota entre celular y desktop (pull al boot, push periódico, visibilidad y un backend real para VITE_SYNC_URL) sobre la superficie técnica ya generada (grilla mobile-first, CSV, merge LWW, outbox, export/import JSON) provocará que registre cada serie en el celular durante la sesión sin abrir el Google Sheet ni exportar CSV a mano, lo cual sabremos que es cierto cuando observemos 4 sesiones consecutivas registradas enteramente en la app con cero aperturas del Sheet y las 4 sesiones visibles en el desktop mediante sincronización automática activa, sin ninguna acción manual de export/import.",
+  "learning_objective": "¿La barrera real es la ergonomía del celular (entrada por celda, teclado numérico) o la ausencia de un mecanismo confiable de sincronización remota con backend real y trigger operativo en flujo normal? La evidencia del redirect muestra que el generation_target anterior era ambiguo respecto a la funcionalidad de sincronización en producción (syncOnReconnect solo opera en evento 'online', sin pull/boot ni push periódico; VITE_SYNC_URL no apunta a ningún backend). Esta Bet existe para separar esas explicaciones antes de completar la infraestructura de sincronización: si tras completar el transporte (pull al boot, push periódico, visibilitychange, backend real) y corregir los 3 defectos críticos/medios del round anterior (L45 transporte, L46 notas, L47 README) la señal central (4 sesiones visibles en desktop sin export/import manual) sigue sin cumplirse, la barrera no era técnica sino de uso/hábito y la Bet debe morir.",
+  "generation_target": {
+    "codigo_dominio": "Grilla mobile-first (fila congelada, semana por vista, input numérico por celda) cubierta; import CSV por paste; notas por ejercicio; override de sesión; outbox offline-first con pull/merge LWW; export/import JSON; transporte remoto (remoteSync) con protocolo de sincronización definido. A completar: pull al boot, push periódico y sync en visibilitychange para que el transporte opere en flujo normal con ambos dispositivos online; backend real que resuelva VITE_SYNC_URL (hoy solo schema.sql + sync-protocol.md en db/).",
+    "tests": "35 tests verdes cubriendo CSV (columnas irregulares, celdas vacías, notas con comas), merge LWW por celda, idempotencia del outbox, round-trip export/import JSON, override de sesión, transporte remoto. Verificados los 3 defectos críticos/medios del round anterior (L45 transporte, L46 notas, L47 README). Pendiente: integración end-to-end del flujo de sincronización con un endpoint real.",
+    "documentacion": "README con formato CSV aceptado y guía de reemplazo del plan. sync-protocol.md define el esquema de sincronización; requiere actualización para documentar el backend real y el flujo completo (boot, periódico, visibilitychange).",
+    "schema_migraciones": "Postgres con cells(exercise_id, week, set_index, weight, reps, updated_at), notes(exercise_id, week, text, updated_at), plans(id, json, revision, created_at). Merge UPSERT con WHERE excluded.updated_at > cells.updated_at. db/ contiene schema.sql y sync-protocol.md; falta el backend que exponga el endpoint de sincronización.",
+    "configuracion_despliegue": "Blast radius = 1 usuario (Ramiro). Token de API en variable de entorno. navigator.storage.persist() implementado. VITE_SYNC_URL definido pero sin destino en producción; requiere un backend real o endpoint de sincronización para que el transporte remoto sea funcional."
+  },
+  "resolution_signal": [
+    {
+      "metrica": "Sesiones consecutivas registradas enteramente en la app",
+      "baseline": "0 (v1: 2 días y abandono)",
+      "umbral_exito": ">= 4",
+      "fuente_instrumentacion": "Contador local visible en la app",
+      "piso_minimo_muestra": null
+    },
+    {
+      "metrica": "Aperturas del Google Sheet durante la sesión",
+      "baseline": "~1 por sesión (hoy es la herramienta)",
+      "umbral_exito": "0 en las 4 sesiones",
+      "fuente_instrumentacion": "Autorreportado por sesión",
+      "piso_minimo_muestra": null
+    },
+    {
+      "metrica": "Export/import manual de CSV de datos",
+      "baseline": "n/a",
+      "umbral_exito": "0",
+      "fuente_instrumentacion": "Autorreportado",
+      "piso_minimo_muestra": null
+    },
+    {
+      "metrica": "Tiempo de tipeo por celda",
+      "baseline": "no medido",
+      "umbral_exito": "<= 3 s",
+      "fuente_instrumentacion": "Medición local en la app (focusTimers)",
+      "piso_minimo_muestra": null
+    },
+    {
+      "metrica": "Sesiones visibles en desktop mediante sincronización automática activa",
+      "baseline": "0 (camino técnico existente pero no operable en flujo real: falta backend y trigger de sync solo opera en 'online')",
+      "umbral_exito": "4 de 4",
+      "fuente_instrumentacion": "Verificación visual en desktop con backend y trigger completos",
+      "piso_minimo_muestra": "4"
+    }
+  ],
+  "risk_envelope": {
+    "blast_radius": "1 usuario (Ramiro), 1 dispositivo celular principal (gimnasio), desktop como lector/editor secundario. Cero usuarios externos, cero datos de terceros. Nuevos defectos identificados por redirect: alta (sync solo en evento 'online', sin pull/boot ni push periódico ni visibilitychange) y media (VITE_SYNC_URL sin destino, db/ solo con schema y protocolo).",
+    "etapas_canary": [
+      {
+        "etapa": 1,
+        "exposicion": "Sesión 1 con Sheet abierto en paralelo como red de contención; verificación del transporte remoto con endpoint temporal si existe.",
+        "dwell_time_minimo": "1 sesión",
+        "condicion_de_avance": "Sesión registrada completa en la app, round-trip JSON restaura el estado, y la sincronización con el desktop opera al menos una vez con el evento 'online' o trigger manual."
+      },
+      {
+        "etapa": 2,
+        "exposicion": "Sesiones 2-4 con Sheet cerrado; flujo real con sincronización automática activa (pull al boot, push periódico, visibilitychange, backend real).",
+        "dwell_time_minimo": "1 sesión por etapa, sin saltos",
+        "condicion_de_avance": "4 sesiones consecutivas registradas con cero aperturas del Sheet y las 4 sesiones visibles en desktop mediante sincronización automática, sin acción manual de export/import."
+      }
+    ],
+    "triggers_rollback": [
+      {
+        "metrica": "Sincronización automática activa en desktop",
+        "umbral": 0,
+        "comparador": ">",
+        "ventana": "durante las 4 sesiones",
+        "accion": "automatic_rollback"
+      },
+      {
+        "metrica": "Export JSON restaura el estado completo",
+        "umbral": 1,
+        "comparador": "<",
+        "ventana": "post-desconexión",
+        "accion": "automatic_rollback"
+      },
+      {
+        "metrica": "Sesiones registradas enteramente en la app",
+        "umbral": 4,
+        "comparador": "<",
+        "ventana": "al deadline (2026-10-07)",
+        "accion": "automatic_rollback"
+      }
+    ]
+  },
+  "supuestos_no_verificados": [
+    "El contexto de negocio (OKRs, métricas de producto) no se verificó en esta iteración; la hipótesis se reconstruyó a partir del pedido original y la evidencia del redirect.",
+    "El apetito de riesgo de la organización no fue confirmado: blast radius asumido como 1 usuario (propio del archivo original). El Risk Envelope del archivo original no cubre explícitamente los nuevos defectos de alta/media (falta de backend, trigger de sync); se mantienen los triggers de rollback del archivo con adiciones basadas en la evidencia del redirect."
+  ]
+}

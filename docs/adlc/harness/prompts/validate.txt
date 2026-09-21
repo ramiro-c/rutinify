@@ -1,0 +1,51 @@
+Ejecutá tu contrato de Validator Agent sobre la Bet indicada. Empezá ya, sin esperar una
+entrega completa: validá lo que exista en el worktree.
+
+Toda falla puntual que encuentres escribila como una linea JSON en
+{{runs_dir}}/{{bet_id}}.feedback.jsonl, con esta forma exacta:
+
+{"at":"<ISO-8601>","from":"validator","kind":"defect","target":"<ruta:linea>","repro":"<caso minimo que lo reproduce>","severity":"baja|media|alta|critica","status":"open"}
+
+No corrijas el codigo vos: reporta.
+
+PROTOCOLO DE SALIDA (obligatorio): cuando termines, devolve EXCLUSIVAMENTE un objeto JSON,
+sin texto antes ni despues, sin fences de markdown, sin volver a leer archivos. La forma
+exacta, con las 5 claves de primer nivel TODAS obligatorias, es esta:
+
+{
+  "bet_id": "BET-2026-001",
+  "suite_tests": {
+    "unitarios": "que cubren y donde viven",
+    "extremo_a_extremo": "que flujo completo se ejercita",
+    "fuzzing": "que entradas se atacan"
+  },
+  "reporte_regresion": {
+    "comportamiento_verificado_intacto": ["comportamiento previo que sigue funcionando"],
+    "regresiones_detectadas": [
+      { "descripcion": "que se rompio", "severidad": "baja" }
+    ]
+  },
+  "reporte_cobertura_hipotesis": {
+    "cobertura_tecnica": "que verifica la suite, en terminos tecnicos",
+    "cobertura_hipotesis": "si la suite ejercita o no la pregunta de negocio de la Hipotesis",
+    "brecha_explicita": true
+  },
+  "senales_validation_debt": []
+}
+
+REGLAS DURAS DE TIPOS (si no las respetas el JSON se rechaza):
+- Las 5 claves de primer nivel son obligatorias: bet_id, suite_tests, reporte_regresion,
+  reporte_cobertura_hipotesis, senales_validation_debt.
+- "suite_tests" tiene las 3 sub-claves obligatorias unitarios, extremo_a_extremo y fuzzing,
+  cada una un string.
+- "reporte_regresion.comportamiento_verificado_intacto" es un ARRAY de strings (puede ir vacio).
+- "reporte_regresion.regresiones_detectadas" es un ARRAY de objetos con "descripcion" (string)
+  y "severidad" (string), y "severidad" solo puede ser uno de: baja, media, alta, critica.
+- "reporte_cobertura_hipotesis.brecha_explicita" es un BOOLEANO (true o false), nunca un string
+  ni un null, y nunca puede faltar.
+- "senales_validation_debt" es un ARRAY de strings; cada elemento, si hay, tiene que ser uno de:
+  senal_ausente_en_produccion, resolucion_por_proxy_tecnico, estancamiento_silencioso,
+  superficie_fantasma. Si no hay ninguna, va el array vacio [].
+- "bet_id" tiene que ser exactamente "{{bet_id}}".
+
+Devolve el objeto JSON y nada mas.

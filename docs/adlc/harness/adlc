@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Wrapper para no tener que escribir la ruta completa.
+#   ./adlc start BET-2026-001
+#   ./adlc status
+# o, con un alias:  alias adlc='~/Desktop/personal/rutinify/docs/adlc/harness/adlc'
+set -euo pipefail
+exec node "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/adlc.mjs" "$@"

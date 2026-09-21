@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "spec": "../toolkit/04-MVP-Agentic-Loop/workflow-spec.json",
+  "bet_dir": "docs/adlc",
+  "runs_dir": "docs/adlc/harness/runs",
+  "phases": {
+    "hypothesis_draft": {
+      "agent": "adlc-architect",
+      "prompt": "prompts/architect.txt",
+      "human_actions": [
+        "Confirmar el borrador de Bet Register.",
+        "Completar owner_governor, deadline y el Risk Envelope.",
+        "Poner status: active en el frontmatter de la Bet."
+      ]
+    },
+    "parallel_gen_val": {
+      "branches": {
+        "generate": {
+          "agent": "adlc-generator",
+          "prompt": "prompts/generate.txt"
+        },
+        "validate": {
+          "agent": "adlc-validator",
+          "prompt": "prompts/validate.txt"
+        }
+      },
+      "feedback": "runs/{{bet_id}}.feedback.jsonl",
+      "max_feedback_rounds": 2
+    },
+    "govern_gate": {
+      "agent": "adlc-governor-interface",
+      "prompt": "prompts/governor.txt",
+      "blocking": true,
+      "required_artifact": "gdr"
+    },
+    "canary_deploy": {
+      "agent": "adlc-deploy-observe",
+      "prompt": "prompts/deploy.txt"
+    },
+    "continuous_observe": {
+      "agent": "adlc-deploy-observe",
+      "prompt": "prompts/observe.txt"
+    },
+    "redirect": {
+      "agent": "adlc-architect",
+      "prompt": "prompts/architect.txt"
+    }
+  }
+}

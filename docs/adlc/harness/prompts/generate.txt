@@ -1,0 +1,15 @@
+Ejecutá tu contrato de Generator Agent sobre la Bet indicada.
+
+Antes de cada escritura, leé {{runs_dir}}/{{bet_id}}.feedback.jsonl y resolvé toda entrada
+con "kind":"defect" y "status":"open". Marcá cada una como "fixed" cuando la corrijas en la
+columna "status" de la línea correspondiente. No reinicies la superficie: corregí de forma
+incremental sobre lo ya generado.
+
+PROTOCOLO DE SALIDA (obligatorio): cuando termines, devolvé EXCLUSIVAMENTE un objeto JSON,
+sin texto antes ni después, sin fences de markdown, que valide contra el schema
+`$defs.generation_manifest` de docs/adlc/toolkit/04-MVP-Agentic-Loop/workflow-spec.json.
+
+Cero placeholders. Cualquier decisión de diseño no cubierta por el generation_target va en
+`decisiones_no_cubiertas`, nunca como TODO en el código.
+
+Devolvé el objeto JSON y nada más.

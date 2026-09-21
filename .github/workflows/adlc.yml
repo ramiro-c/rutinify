@@ -1,0 +1,62 @@
+# Carril 1 del ADLC: CI determinista, costo cero.
+#
+# DECISIÓN DE DISEÑO — no la rompas: este workflow NO tiene secretos, NO instala opencode,
+# NO configura `environment:` y NO invoca ningún modelo. Sólo corre lo que da siempre el
+# mismo resultado: el selftest del driver, el estado de una Bet commiteada y la notaría de
+# artefactos (verify-runs). Si necesitás una corrida con modelos, es OTRO carril: no
+# agregues un paso de agente acá. Un carril 1 que llama a un modelo deja de ser determinista
+# y deja de ser gratis.
+name: ADLC (Carril 1 - determinista)
+
+on:
+  pull_request:
+    paths:
+      - 'docs/adlc/**'
+      - '.github/workflows/adlc.yml'
+      - '.opencode/agents/adlc-*.md'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/adlc/**'
+      - '.github/workflows/adlc.yml'
+      - '.opencode/agents/adlc-*.md'
+  workflow_dispatch:
+
+# Mínimo privilegio: este carril sólo lee el repo.
+permissions:
+  contents: read
+
+# Una corrida vieja del mismo ref no aporta nada: se cancela cuando llega una nueva.
+concurrency:
+  group: adlc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  determinista:
+    name: Selftest + estado + verify-runs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias del harness (ajv, ajv-formats)
+        working-directory: docs/adlc/harness
+        run: npm ci
+
+      - name: Selftest del driver (no invoca ningún modelo)
+        working-directory: docs/adlc/harness
+        run: node adlc.mjs selftest
+
+      # Ejercita un handler REAL, no una función pura. Un selftest de funciones puras no
+      # prueba que los handlers sean ejecutables: `status` ya se rompió una vez por usar el
+      # argv crudo como betId. Este paso mantiene esa lección cubierta.
+      - name: Estado de la Bet commiteada
+        working-directory: docs/adlc/harness
+        run: node adlc.mjs status BET-2026-001
+
+      - name: Notaría de artefactos de runs/
+        working-directory: docs/adlc/harness
+        run: node adlc.mjs verify-runs

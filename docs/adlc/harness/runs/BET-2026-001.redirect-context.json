@@ -1,0 +1,11 @@
+{
+  "motivo": "generation_target_ambiguo",
+  "bet_id": "BET-2026-001",
+  "brecha_explicita": true,
+  "cobertura_tecnica": "ALTA: 35 tests verdes, tsc limpio, y los 3 defectos criticos/medios del round anterior (L45 transporte, L46 notas, L47 README) verificados corregidos en el worktree. La suite cubre el dominio completo declarado en el Generation Target: CSV, merge LWW, outbox, export/import, override, telemetria y el nuevo transporte remoto.",
+  "cobertura_hipotesis": "PARCIAL: 3 de las 5 senales estan instrumentadas localmente y visibles en UI (contador de sesiones consecutivas X/4 en el header, aperturas del Sheet autorreportadas por sesion, tiempo de tipeo por celda medido con focusTimers). La senal central de la Bet - 4 sesiones visibles en desktop sin export/import manual - AHORA tiene camino de codigo (remoteSync.ts + sync-protocol.md + schema.sql) pero NO es medible en produccion: (a) syncOnReconnect solo se dispara en el evento window 'online', sin pull al boot ni push periodico ni visibilitychange, asi que en el flujo normal con ambos dispositivos online nada se sincroniza (defecto nuevo alta); (b) el repo no implementa ningun backend: db/ tiene solo schema.sql y sync-protocol.md, VITE_SYNC_URL no tiene a donde apuntar en produccion (defecto nuevo media).",
+  "senales_validation_debt": [
+    "senal_ausente_en_produccion"
+  ],
+  "nota": "La superficie generada no responde al generation_target de forma coherente. NO re-emitas la misma Bet: reformula la Hipotesis, el Learning Objective o el generation_target a la luz de esta evidencia."
+}
